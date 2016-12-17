@@ -134,7 +134,10 @@ function add_vertices(array)
 
 		var mid = vec3.create();
 		for (var j=0; j<3; j++) vec3.add(mid,mid,v[j]);
-		vec3.scale(mid, mid, vec3.len(v[0]) / vec3.len(mid));
+		vec3.scale(mid, mid, 1./3);
+		var alpha = .8;
+		var beta = 1.3;
+		vec3.scale(mid, mid, beta* (alpha + (1-alpha)*(vec3.len(v[0]) / vec3.len(mid))) );
 
 		var cmid = vec3.create();
 		for (var j=0; j<3; j++) vec3.add(cmid,cmid,c[j]);
@@ -157,6 +160,7 @@ function add_vertices(array)
 
 function initBuffers()
 {
+	if (false)
 	vertices = [ 
 			  1, -1, 1. ,0,0,1, 42,42,42,
 			  1,  1, -1, 0,1,0, 42,42,42,
@@ -175,7 +179,7 @@ function initBuffers()
 			  1, -1, 1. ,0,0,1, 42,42,42,
 
 			  ];
-/*
+	else
 	vertices = [
 			 1, 0, 0,   1,0,0,  42,42,42,
 			 0, 1, 0,   0,1,0,  42,42,42,
@@ -209,16 +213,9 @@ function initBuffers()
 			 0, 0,-1,   1,1,0,  42,42,42,
 			 0,-1, 0,   1,0,1,  42,42,42,
 		];
-*/
 
-
-	vertices = add_vertices(vertices);
-	vertices = add_vertices(vertices);
-	vertices = add_vertices(vertices);
-	vertices = add_vertices(vertices);
-	vertices = add_vertices(vertices);
-	vertices = add_vertices(vertices);
-	//vertices = add_vertices(vertices);
+	for (var i=0; i<5; i++)
+		vertices = add_vertices(vertices);
 	
 	console.log("have "+vertices.length+" vertices");
 
@@ -250,7 +247,7 @@ function initBuffers()
 			var d_mid = vec3.create();
 			vec3.sub(d_mid, v[j], mid);
 			vec3.normalize(d_mid, d_mid);
-			vec3.scale(d_mid, d_mid, -1);
+			vec3.scale(d_mid, d_mid, 1);
 
 			vec3.add(cc, c, d_mid);
 			vec3.normalize(cc,cc);

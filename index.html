@@ -15,15 +15,22 @@
 		void main(void) {
 			vec3 light_dir = normalize(light_pos - pos.xyz/pos.w);
 			vec3 n = normalize(normal);
+			vec3 v = normalize(light_pos - pos.xyz/pos.w);
+
+			vec3 r = 2.*dot(light_dir, n)*n - light_dir;
 
 
 
 
 			vec3 amb = 0.1 * color;
 			vec3 dif = dot(light_dir, n) * color;
+			vec3 spe = 1. * pow(max(0.,dot(v, r)), 30.) * vec3(1,1,1);
+
+			dif=max(dif,vec3(0));
+			spe=max(spe,vec3(0));
 
 
-			gl_FragColor = vec4(amb+dif,1);
+			gl_FragColor = vec4(amb+dif+spe,1);
 		//	gl_FragColor = vec4(vec3(0.5,0.5,0.5)+0.5*n,1);
 		}
 	</script>
