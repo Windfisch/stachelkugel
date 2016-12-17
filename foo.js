@@ -7,12 +7,20 @@ var vPos3Attr;
 var vLevelAttr;
 var vertices;
 
+var clicked=false;
+var click_animation=false;
+
 var data_width=15;
 
 function start()
 {
 	canvas = document.getElementById("glcanvas");
-	
+
+	//canvas.onclick=click;
+
+	canvas.addEventListener("mousedown", click)
+	canvas.addEventListener("touchstart", click)
+
 	try
 	{
 		gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
@@ -118,6 +126,15 @@ function flatten(arr) {
   return arr.reduce(function (flat, toFlatten) {
     return flat.concat(Array.isArray(toFlatten) ? flatten(toFlatten) : toFlatten);
   }, []);
+}
+
+function click() {
+console.log("click")
+	if (click_animation == false)
+	{
+		clicked=true;
+		click_animation=true;
+	}
 }
 
 function add_vertices(array)
@@ -263,6 +280,12 @@ function initBuffers()
 	gl.enable(gl.CULL_FACE);
 }
 
+function cosfade(x, a,b)
+{
+	var c = -Math.cos(x*3.1415) / 2 + 0.5;
+
+	return (c*b + (1-c)*a);
+}
 
 function drawScene(now)
 {
@@ -292,9 +315,54 @@ function drawScene(now)
 	
 	var mvUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
 	gl.uniformMatrix4fv(mvUniform, false, mvMatrix);
-	
+
+
+	var spike;
+
+	if (clicked == true)
+	{
+		click_time=now;
+		clicked=false;
+	}
+
+	if (click_animation)
+	{
+		var t = now - click_time;
+
+		var s1=0.;
+		var s2=2.;
+		var s3=0.7;
+		var sbase=1;
+
+		var t1=100;
+		var t2=300;
+		var t3=500;
+		var t4=700;
+
+		if (t < t1)
+			spike = cosfade(t/t1, sbase, s1);
+		else if (t < t2)
+			spike = cosfade((t-t1)/(t2-t1), s1, s2);
+		else if (t < t3)
+			spike = cosfade((t-t2)/(t3-t2), s2, s3);
+		else if (t < t4)
+			spike = cosfade((t-t3)/(t4-t3), s3, sbase);
+		else
+		{
+			spike = sbase;
+			click_animation = false;
+		}
+
+		spike = spike/2;
+	}
+	else
+	{
+		spike = 0.5;
+	}
+
 	var spikeUniform = gl.getUniformLocation(shaderProgram, "spike");
-	gl.uniform1f(spikeUniform,0.5+0.5* Math.sin(now*3.1415/1000));
+	gl.uniform1f(spikeUniform, spike);
+	//gl.uniform1f(spikeUniform,0.5+0.5* Math.sin(now*3.1415/1000));
 	
 	
 	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
