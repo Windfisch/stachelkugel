@@ -5,6 +5,7 @@ var vColorAttr;
 var vNormalAttr;
 var vertices;
 
+var data_width=9;
 
 function start()
 {
@@ -115,11 +116,11 @@ function flatten(arr) {
 function add_vertices(array)
 {
 	var result = new Array();
-	var l = array.length / (3*9);
+	var l = array.length / (3*data_width);
 
 	for (var ii=0; ii<l; ii++)
 	{
-		var i = [ii*3*9, ii*3*9 + 9, ii*3*9 + 18];
+		var i = [ii*3*data_width, ii*3*data_width + data_width, ii*3*data_width + 2*data_width];
 
 		var v = [
 				[array[i[0]+0], array[i[0]+1], array[i[0]+2]],
@@ -219,12 +220,14 @@ function initBuffers()
 	
 	console.log("have "+vertices.length+" vertices");
 
-	for (var i=0; i<vertices.length/9; i+=3)
+	for (var i=0; i<vertices.length/data_width; i+=3)
 	{
 		var c = vec3.create();
-		var v = [ [vertices[9*i+0], vertices[9*i+1], vertices[9*i+2]],
-		          [vertices[9*i+9], vertices[9*i+10], vertices[9*i+11]],
-		          [vertices[9*i+18], vertices[9*i+19], vertices[9*i+20]] ];
+		var v = [
+			[vertices[data_width*(i+0)+0], vertices[data_width*(i+0)+1], vertices[data_width*(i+0)+2]],
+			[vertices[data_width*(i+1)+0], vertices[data_width*(i+1)+1], vertices[data_width*(i+1)+2]],
+			[vertices[data_width*(i+2)+0], vertices[data_width*(i+2)+1], vertices[data_width*(i+2)+2]],
+			];
 	
 		var d1 = vec3.create();
 		var d2 = vec3.create();
@@ -252,9 +255,9 @@ function initBuffers()
 			vec3.add(cc, c, d_mid);
 			vec3.normalize(cc,cc);
 
-			vertices[9*(i+j)+6] = cc[0];
-			vertices[9*(i+j)+7] = cc[1];
-			vertices[9*(i+j)+8] = cc[2];
+			vertices[data_width*(i+j)+6] = cc[0];
+			vertices[data_width*(i+j)+7] = cc[1];
+			vertices[data_width*(i+j)+8] = cc[2];
 		}
 	}
 	
@@ -275,9 +278,9 @@ function drawScene(now)
 	var perspectiveMatrix = mat4.create();
 	mat4.perspective(perspectiveMatrix, 3.1415/16, 1, .1, 100.0);
 	gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-	gl.vertexAttribPointer(vPosAttr, 3, gl.FLOAT, false, 9*4, 0*4);
-	gl.vertexAttribPointer(vColorAttr, 3, gl.FLOAT, false, 9*4, 3*4);
-	gl.vertexAttribPointer(vNormalAttr, 3, gl.FLOAT, false, 9*4, 6*4);
+	gl.vertexAttribPointer(vPosAttr, 3, gl.FLOAT, false, data_width*4, 0*4);
+	gl.vertexAttribPointer(vColorAttr, 3, gl.FLOAT, false, data_width*4, 3*4);
+	gl.vertexAttribPointer(vNormalAttr, 3, gl.FLOAT, false, data_width*4, 6*4);
 
 
 	var mvMatrix = mat4.create();
@@ -295,7 +298,7 @@ function drawScene(now)
 	gl.uniformMatrix4fv(mvUniform, false, mvMatrix);
 	
 	
-	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/9);
+	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
 	
 	requestAnimationFrame(drawScene);
 }
