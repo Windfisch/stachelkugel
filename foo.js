@@ -1,6 +1,7 @@
 var gl;
 var vbo;
 var vPosAttr;
+var vColorAttr;
 
 
 function start()
@@ -27,7 +28,9 @@ function start()
 	initShaders();
 	initBuffers();
 
-	drawScene();
+	//drawScene();
+
+	requestAnimationFrame(drawScene);
 }
 
 function getShader(gl, id) {
@@ -92,13 +95,17 @@ function initShaders()
 
 	vPosAttr = gl.getAttribLocation(shaderProgram, "aVertexPosition");
 	gl.enableVertexAttribArray(vPosAttr);
+	
+	vColorAttr = gl.getAttribLocation(shaderProgram, "aVertexColor");
+	gl.enableVertexAttribArray(vColorAttr);
+	
 }
 
 function initBuffers()
 {
-	var vertices = [ .1, .1, -1.0,
-			 -.1, .1, -1.,
-			 0, -.1, -1. ];
+	var vertices = [ .1, .1, -1.0, 1, 0, 0,
+			 -.1, .1, -1., 0,1,0,
+			 0, -.1, -1. ,0,0,1];
 	vbo = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
@@ -106,20 +113,23 @@ function initBuffers()
 }
 
 
-function drawScene()
+function drawScene(now)
 {
 	gl.clearColor(1.,1.,0.,1.);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 	var perspectiveMatrix = mat4.create();
 	mat4.perspective(perspectiveMatrix, 3.1415/4, 1, 1.0, 100.0);
-	console.log(perspectiveMatrix);
 	gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-	gl.vertexAttribPointer(vPosAttr, 3, gl.FLOAT, false, 0, 0);
+	gl.vertexAttribPointer(vPosAttr, 3, gl.FLOAT, false, 6*4, 0*4);
+	gl.vertexAttribPointer(vColorAttr, 3, gl.FLOAT, false, 6*4, 3*4);
 
 
 	var mvMatrix = mat4.create();
 	mat4.identity(mvMatrix);
+	
+	var angle = now * 3.1415 / 1000;
+	mat4.fromRotation(mvMatrix, angle, [0 ,0.,1.]);
 
 	//setMatrixUniforms();
 	var pUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
@@ -130,6 +140,8 @@ function drawScene()
 	
 	
 	gl.drawArrays(gl.TRIANGLES, 0, 3);
+	
+	requestAnimationFrame(drawScene);
 }
 
 function setMatrixUniforms()

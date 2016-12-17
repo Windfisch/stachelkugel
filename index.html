@@ -5,21 +5,27 @@
 	<script type="text/javascript" src="./foo.js"></script>
     
 	<script id="shader-fs" type="x-shader/x-fragment">
+		precision mediump float;
+		varying vec3 color;
 		void main(void) {
-			gl_FragColor = vec4(1.0, 0.5, 0.5, 1.0);
+			gl_FragColor = vec4(color,1);
 		}
 	</script>
 
 <script id="shader-vs" type="x-shader/x-vertex">
+precision mediump float;
   attribute vec3 aVertexPosition;
+  attribute vec3 aVertexColor;
 
   uniform mat4 uMVMatrix;
   uniform mat4 uPMatrix;
+  varying vec3 color;
   
 
   void main(void) {
+    color=aVertexColor;
     //gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-    gl_Position = uPMatrix * vec4(aVertexPosition, 1.0);
+    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
   }
 </script>
 </head>
