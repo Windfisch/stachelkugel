@@ -3,6 +3,7 @@ var vbo;
 var vPosAttr;
 var vColorAttr;
 var vNormalAttr;
+var vertices;
 
 
 function start()
@@ -105,9 +106,58 @@ function initShaders()
 	
 }
 
+function flatten(arr) {
+  return arr.reduce(function (flat, toFlatten) {
+    return flat.concat(Array.isArray(toFlatten) ? flatten(toFlatten) : toFlatten);
+  }, []);
+}
+
+function add_vertices(array)
+{
+	var result = new Array();
+	var l = array.length / (3*9);
+
+	for (var ii=0; ii<l; ii++)
+	{
+		var i = [ii*3*9, ii*3*9 + 9, ii*3*9 + 18];
+
+		var v = [
+				[array[i[0]+0], array[i[0]+1], array[i[0]+2]],
+				[array[i[1]+0], array[i[1]+1], array[i[1]+2]],
+				[array[i[2]+0], array[i[2]+1], array[i[2]+2]]
+			];
+		var c = [
+				[array[i[0]+3], array[i[0]+4], array[i[0]+5]],
+				[array[i[1]+3], array[i[1]+4], array[i[1]+5]],
+				[array[i[2]+3], array[i[2]+4], array[i[2]+5]]
+			];
+
+		var mid = vec3.create();
+		for (var j=0; j<3; j++) vec3.add(mid,mid,v[j]);
+		vec3.scale(mid, mid, vec3.len(v[0]) / vec3.len(mid));
+
+		var cmid = vec3.create();
+		for (var j=0; j<3; j++) vec3.add(cmid,cmid,c[j]);
+		vec3.scale(cmid, cmid, 1./3);
+
+		for (var j=0; j<3; j++)
+		{
+			for (var k=0; k<3; k++)
+			{
+				if (k!=j)
+					result = result.concat( v[k], c[k], [42,42,42] );
+				else
+					result = result.concat( [mid[0],mid[1],mid[2]], [cmid[0],cmid[1],cmid[2]], [43,43,43] );
+			}
+		}
+	}
+
+	return result;
+}
+
 function initBuffers()
 {
-	var vertices = [ 
+	vertices = [ 
 			  1, -1, 1. ,0,0,1, 42,42,42,
 			  1,  1, -1, 0,1,0, 42,42,42,
 			 -1,  1, 1. ,1,1,0, 42,42,42,
@@ -125,9 +175,54 @@ function initBuffers()
 			  1, -1, 1. ,0,0,1, 42,42,42,
 
 			  ];
+/*
+	vertices = [
+			 1, 0, 0,   1,0,0,  42,42,42,
+			 0, 1, 0,   0,1,0,  42,42,42,
+			 0, 0, 1,   0,0,1,  42,42,42,
+
+			 0, 1, 0,   0,1,0,  42,42,42,
+			 1, 0, 0,   1,0,0,  42,42,42,
+			 0, 0,-1,   1,1,0,  42,42,42,
+
+			 0,-1, 0,   1,0,1,  42,42,42,
+			 1, 0, 0,   1,0,0,  42,42,42,
+			 0, 0, 1,   0,0,1,  42,42,42,
+
+			 1, 0, 0,   1,0,0,  42,42,42,
+			 0,-1, 0,   1,0,1,  42,42,42,
+			 0, 0,-1,   1,1,0,  42,42,42,
+
+			 0, 1, 0,   0,1,0,  42,42,42,
+			-1, 0, 0,   0,1,1,  42,42,42,
+			 0, 0, 1,   0,0,1,  42,42,42,
+
+			-1, 0, 0,   0,1,1,  42,42,42,
+			 0, 1, 0,   0,1,0,  42,42,42,
+			 0, 0,-1,   1,1,0,  42,42,42,
+
+			-1, 0, 0,   0,1,1,  42,42,42,
+			 0,-1, 0,   1,0,1,  42,42,42,
+			 0, 0, 1,   0,0,1,  42,42,42,
+
+			-1, 0, 0,   0,1,1,  42,42,42,
+			 0, 0,-1,   1,1,0,  42,42,42,
+			 0,-1, 0,   1,0,1,  42,42,42,
+		];
+*/
 
 
-	for (var i=0; i<12; i+=3)
+	vertices = add_vertices(vertices);
+	vertices = add_vertices(vertices);
+	vertices = add_vertices(vertices);
+	vertices = add_vertices(vertices);
+	vertices = add_vertices(vertices);
+	vertices = add_vertices(vertices);
+	//vertices = add_vertices(vertices);
+	
+	console.log("have "+vertices.length+" vertices");
+
+	for (var i=0; i<vertices.length/9; i+=3)
 	{
 		var c = vec3.create();
 		var v = [ [vertices[9*i+0], vertices[9*i+1], vertices[9*i+2]],
@@ -147,9 +242,7 @@ function initBuffers()
 		vec3.add(mid,mid,v[2]);
 		vec3.scale(mid,mid,1./3.);
 
-
 		vec3.normalize(c,c);
-		console.log(c);
 		for (var j=0; j<3; j++)
 		{
 			var cc = vec3.clone(c);
@@ -157,7 +250,7 @@ function initBuffers()
 			var d_mid = vec3.create();
 			vec3.sub(d_mid, v[j], mid);
 			vec3.normalize(d_mid, d_mid);
-			vec3.scale(d_mid, d_mid, 0);
+			vec3.scale(d_mid, d_mid, -1);
 
 			vec3.add(cc, c, d_mid);
 			vec3.normalize(cc,cc);
@@ -195,7 +288,7 @@ function drawScene(now)
 	
 	var angle = now * 3.1415 / 3000;
 	mat4.translate(mvMatrix, mvMatrix, [0,0,-20]);
-	mat4.rotate(mvMatrix, mvMatrix, angle, [0 ,1,0]);
+	mat4.rotate(mvMatrix, mvMatrix, angle, [Math.sin(now/10000) ,Math.cos(now/13000),-.1]);
 
 	//setMatrixUniforms();
 	var pUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
@@ -205,7 +298,7 @@ function drawScene(now)
 	gl.uniformMatrix4fv(mvUniform, false, mvMatrix);
 	
 	
-	gl.drawArrays(gl.TRIANGLES, 0, 12);
+	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/9);
 	
 	requestAnimationFrame(drawScene);
 }

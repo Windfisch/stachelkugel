@@ -10,7 +10,7 @@
 		varying vec3 normal;
 		varying vec4 pos;
 
-		const vec3 light_pos = vec3(0,0,-10);
+		const vec3 light_pos = vec3(10,5,-10);
 
 		void main(void) {
 			vec3 light_dir = normalize(light_pos - pos.xyz/pos.w);
