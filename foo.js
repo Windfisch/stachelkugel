@@ -2,10 +2,11 @@ var gl;
 var vbo;
 var vPosAttr;
 var vColorAttr;
-var vNormalAttr;
+var vPos2Attr;
+var vPos3Attr;
 var vertices;
 
-var data_width=9;
+var data_width=12;
 
 function start()
 {
@@ -102,8 +103,10 @@ function initShaders()
 	vColorAttr = gl.getAttribLocation(shaderProgram, "aVertexColor");
 	gl.enableVertexAttribArray(vColorAttr);
 	
-	vNormalAttr = gl.getAttribLocation(shaderProgram, "aVertexNormal");
-	gl.enableVertexAttribArray(vNormalAttr);
+	vPos2Attr = gl.getAttribLocation(shaderProgram, "aVertexPosition2");
+	gl.enableVertexAttribArray(vPos2Attr);
+	vPos3Attr = gl.getAttribLocation(shaderProgram, "aVertexPosition3");
+	gl.enableVertexAttribArray(vPos3Attr);
 	
 }
 
@@ -149,9 +152,9 @@ function add_vertices(array)
 			for (var k=0; k<3; k++)
 			{
 				if (k!=j)
-					result = result.concat( v[k], c[k], [42,42,42] );
+					result = result.concat( v[k], c[k], [42,42,42,43,43,43] );
 				else
-					result = result.concat( [mid[0],mid[1],mid[2]], [cmid[0],cmid[1],cmid[2]], [43,43,43] );
+					result = result.concat( [mid[0],mid[1],mid[2]], [cmid[0],cmid[1],cmid[2]], [42,42,42,43,43,43] );
 			}
 		}
 	}
@@ -163,101 +166,79 @@ function initBuffers()
 {
 	if (false)
 	vertices = [ 
-			  1, -1, 1. ,0,0,1, 42,42,42,
-			  1,  1, -1, 0,1,0, 42,42,42,
-			 -1,  1, 1. ,1,1,0, 42,42,42,
+			  1, -1, 1. ,0,0,1, 42,42,42, 43,43,43,
+			  1,  1, -1, 0,1,0, 42,42,42, 43,43,43,
+			 -1,  1, 1. ,1,1,0, 42,42,42, 43,43,43,
 
-			 -1, -1, -1, 1,0,0, 42,42,42,
-			  1, -1, 1. ,0,0,1, 42,42,42,
-			 -1,  1, 1. ,1,1,0, 42,42,42,
-			 
-			  1,  1, -1, 0,1,0, 42,42,42,
-			 -1, -1, -1, 1,0,0, 42,42,42,
-			 -1,  1, 1. ,1,1,0, 42,42,42,
-			 
-			 -1, -1, -1, 1,0,0, 42,42,42,
-			  1,  1, -1, 0,1,0, 42,42,42,
-			  1, -1, 1. ,0,0,1, 42,42,42,
+			 -1, -1, -1, 1,0,0, 42,42,42, 43,43,43,
+			  1, -1, 1. ,0,0,1, 42,42,42, 43,43,43,
+			 -1,  1, 1. ,1,1,0, 42,42,42, 43,43,43,
+
+			  1,  1, -1, 0,1,0, 42,42,42, 43,43,43,
+			 -1, -1, -1, 1,0,0, 42,42,42, 43,43,43,
+			 -1,  1, 1. ,1,1,0, 42,42,42, 43,43,43,
+
+			 -1, -1, -1, 1,0,0, 42,42,42, 43,43,43,
+			  1,  1, -1, 0,1,0, 42,42,42, 43,43,43,
+			  1, -1, 1. ,0,0,1, 42,42,42, 43,43,43,
 
 			  ];
 	else
 	vertices = [
-			 1, 0, 0,   1,0,0,  42,42,42,
-			 0, 1, 0,   0,1,0,  42,42,42,
-			 0, 0, 1,   0,0,1,  42,42,42,
+			 1, 0, 0,   1,0,0,  42,42,42, 43,43,43,
+			 0, 1, 0,   0,1,0,  42,42,42, 43,43,43,
+			 0, 0, 1,   0,0,1,  42,42,42, 43,43,43,
 
-			 0, 1, 0,   0,1,0,  42,42,42,
-			 1, 0, 0,   1,0,0,  42,42,42,
-			 0, 0,-1,   1,1,0,  42,42,42,
+			 0, 1, 0,   0,1,0,  42,42,42, 43,43,43,
+			 1, 0, 0,   1,0,0,  42,42,42, 43,43,43,
+			 0, 0,-1,   1,1,0,  42,42,42, 43,43,43,
 
-			 0,-1, 0,   1,0,1,  42,42,42,
-			 1, 0, 0,   1,0,0,  42,42,42,
-			 0, 0, 1,   0,0,1,  42,42,42,
+			 0,-1, 0,   1,0,1,  42,42,42, 43,43,43,
+			 1, 0, 0,   1,0,0,  42,42,42, 43,43,43,
+			 0, 0, 1,   0,0,1,  42,42,42, 43,43,43,
 
-			 1, 0, 0,   1,0,0,  42,42,42,
-			 0,-1, 0,   1,0,1,  42,42,42,
-			 0, 0,-1,   1,1,0,  42,42,42,
+			 1, 0, 0,   1,0,0,  42,42,42, 43,43,43,
+			 0,-1, 0,   1,0,1,  42,42,42, 43,43,43,
+			 0, 0,-1,   1,1,0,  42,42,42, 43,43,43,
 
-			 0, 1, 0,   0,1,0,  42,42,42,
-			-1, 0, 0,   0,1,1,  42,42,42,
-			 0, 0, 1,   0,0,1,  42,42,42,
+			 0, 1, 0,   0,1,0,  42,42,42, 43,43,43,
+			-1, 0, 0,   0,1,1,  42,42,42, 43,43,43,
+			 0, 0, 1,   0,0,1,  42,42,42, 43,43,43,
 
-			-1, 0, 0,   0,1,1,  42,42,42,
-			 0, 1, 0,   0,1,0,  42,42,42,
-			 0, 0,-1,   1,1,0,  42,42,42,
+			-1, 0, 0,   0,1,1,  42,42,42, 43,43,43,
+			 0, 1, 0,   0,1,0,  42,42,42, 43,43,43,
+			 0, 0,-1,   1,1,0,  42,42,42, 43,43,43,
 
-			-1, 0, 0,   0,1,1,  42,42,42,
-			 0,-1, 0,   1,0,1,  42,42,42,
-			 0, 0, 1,   0,0,1,  42,42,42,
+			-1, 0, 0,   0,1,1,  42,42,42, 43,43,43,
+			 0,-1, 0,   1,0,1,  42,42,42, 43,43,43,
+			 0, 0, 1,   0,0,1,  42,42,42, 43,43,43,
 
-			-1, 0, 0,   0,1,1,  42,42,42,
-			 0, 0,-1,   1,1,0,  42,42,42,
-			 0,-1, 0,   1,0,1,  42,42,42,
+			-1, 0, 0,   0,1,1,  42,42,42, 43,43,43,
+			 0, 0,-1,   1,1,0,  42,42,42, 43,43,43,
+			 0,-1, 0,   1,0,1,  42,42,42, 43,43,43,
 		];
 
-	for (var i=0; i<5; i++)
+	for (var i=0; i<4; i++)
 		vertices = add_vertices(vertices);
 	
-	console.log("have "+vertices.length+" vertices");
+	console.log("have "+vertices.length/data_width+" vertices");
 
 	for (var i=0; i<vertices.length/data_width; i+=3)
 	{
-		var c = vec3.create();
 		var v = [
 			[vertices[data_width*(i+0)+0], vertices[data_width*(i+0)+1], vertices[data_width*(i+0)+2]],
 			[vertices[data_width*(i+1)+0], vertices[data_width*(i+1)+1], vertices[data_width*(i+1)+2]],
 			[vertices[data_width*(i+2)+0], vertices[data_width*(i+2)+1], vertices[data_width*(i+2)+2]],
 			];
 	
-		var d1 = vec3.create();
-		var d2 = vec3.create();
-
-		vec3.sub(d1,v[0],v[1]);
-		vec3.sub(d2,v[0],v[2]);
-		vec3.cross(c, d1,d2);
-
-		var mid = vec3.create();
-		vec3.add(mid,mid,v[0]);
-		vec3.add(mid,mid,v[1]);
-		vec3.add(mid,mid,v[2]);
-		vec3.scale(mid,mid,1./3.);
-
-		vec3.normalize(c,c);
 		for (var j=0; j<3; j++)
 		{
-			var cc = vec3.clone(c);
-
-			var d_mid = vec3.create();
-			vec3.sub(d_mid, v[j], mid);
-			vec3.normalize(d_mid, d_mid);
-			vec3.scale(d_mid, d_mid, 1);
-
-			vec3.add(cc, c, d_mid);
-			vec3.normalize(cc,cc);
-
-			vertices[data_width*(i+j)+6] = cc[0];
-			vertices[data_width*(i+j)+7] = cc[1];
-			vertices[data_width*(i+j)+8] = cc[2];
+			vertices[data_width*(i+j)+6] = v[(j+1)%3][0];
+			vertices[data_width*(i+j)+7] = v[(j+1)%3][1];
+			vertices[data_width*(i+j)+8] = v[(j+1)%3][2];
+			vertices[data_width*(i+j)+9] = v[(j+2)%3][0];
+			vertices[data_width*(i+j)+10]= v[(j+2)%3][1];
+			vertices[data_width*(i+j)+11]= v[(j+2)%3][2];
 		}
 	}
 	
@@ -280,7 +261,8 @@ function drawScene(now)
 	gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
 	gl.vertexAttribPointer(vPosAttr, 3, gl.FLOAT, false, data_width*4, 0*4);
 	gl.vertexAttribPointer(vColorAttr, 3, gl.FLOAT, false, data_width*4, 3*4);
-	gl.vertexAttribPointer(vNormalAttr, 3, gl.FLOAT, false, data_width*4, 6*4);
+	gl.vertexAttribPointer(vPos2Attr, 3, gl.FLOAT, false, data_width*4, 6*4);
+	gl.vertexAttribPointer(vPos3Attr, 3, gl.FLOAT, false, data_width*4, 9*4);
 
 
 	var mvMatrix = mat4.create();

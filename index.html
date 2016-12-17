@@ -23,7 +23,7 @@
 
 
 			vec3 amb = 0.1 * color;
-			vec3 dif = dot(light_dir, n) * color;
+			vec3 dif = max(0.,dot(light_dir, n)) * color;
 			vec3 spe = 1. * pow(max(0.,dot(v, r)), 30.) * vec3(1,1,1);
 
 			dif=max(dif,vec3(0));
@@ -31,7 +31,6 @@
 
 
 			gl_FragColor = vec4(amb+dif+spe,1);
-		//	gl_FragColor = vec4(vec3(0.5,0.5,0.5)+0.5*n,1);
 		}
 	</script>
 
@@ -39,7 +38,8 @@
 precision mediump float;
   attribute vec3 aVertexPosition;
   attribute vec3 aVertexColor;
-  attribute vec3 aVertexNormal;
+  attribute vec3 aVertexPosition2;
+  attribute vec3 aVertexPosition3;
 
   uniform mat4 uMVMatrix;
   uniform mat4 uPMatrix;
@@ -50,8 +50,15 @@ precision mediump float;
 
   void main(void) {
     color=aVertexColor;
-    normal=normalize(mat3(uMVMatrix)*aVertexNormal);
-    pos=uMVMatrix * vec4(aVertexPosition,1);
+
+	pos = uMVMatrix * vec4(aVertexPosition, 1);
+	vec4 pos2= uMVMatrix * vec4(aVertexPosition2, 1);
+	vec4 pos3= uMVMatrix * vec4(aVertexPosition3, 1);
+
+	vec3 mid = (pos + pos2 + pos3).xyz / 3.;
+    //normal=normalize(mat3(uMVMatrix)*aVertexNormal);
+    normal = normalize(  normalize( cross( vec3(pos-pos2), vec3(pos-pos3) ) )   +   normalize(pos.xyz-mid) );
+    
     //gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
     gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
   }
