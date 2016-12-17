@@ -7,8 +7,24 @@
 	<script id="shader-fs" type="x-shader/x-fragment">
 		precision mediump float;
 		varying vec3 color;
+		varying vec3 normal;
+		varying vec4 pos;
+
+		const vec3 light_pos = vec3(0,0,-10);
+
 		void main(void) {
-			gl_FragColor = vec4(color,1);
+			vec3 light_dir = normalize(light_pos - pos.xyz/pos.w);
+			vec3 n = normalize(normal);
+
+
+
+
+			vec3 amb = 0.1 * color;
+			vec3 dif = dot(light_dir, n) * color;
+
+
+			gl_FragColor = vec4(amb+dif,1);
+		//	gl_FragColor = vec4(vec3(0.5,0.5,0.5)+0.5*n,1);
 		}
 	</script>
 
@@ -16,14 +32,19 @@
 precision mediump float;
   attribute vec3 aVertexPosition;
   attribute vec3 aVertexColor;
+  attribute vec3 aVertexNormal;
 
   uniform mat4 uMVMatrix;
   uniform mat4 uPMatrix;
   varying vec3 color;
+  varying vec3 normal;
+  varying vec4 pos;
   
 
   void main(void) {
     color=aVertexColor;
+    normal=normalize(mat3(uMVMatrix)*aVertexNormal);
+    pos=uMVMatrix * vec4(aVertexPosition,1);
     //gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
     gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
   }
@@ -35,7 +56,7 @@ precision mediump float;
 <body onload="start()">
 Hallo
 
-<canvas id="glcanvas" width="300" height="300">
+<canvas id="glcanvas" width="600" height="600">
 </canvas>
 
 Hallo
