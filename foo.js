@@ -96,9 +96,9 @@ function initShaders()
 
 function initBuffers()
 {
-	var vertices = [ 100.0, 100.0, -1.0,
-			 -100., 100., -1.,
-			 -100., -100., -1. ];
+	var vertices = [ .1, .1, -1.0,
+			 -.1, .1, -1.,
+			 0, -.1, -1. ];
 	vbo = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
