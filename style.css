@@ -10,7 +10,7 @@ canvas {
 }
 	
 #menu {
-	visibility: visible;
+	visibility: hidden;
 	display: block;
 	position: fixed;
 	background: white;

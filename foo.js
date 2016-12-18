@@ -34,6 +34,8 @@ function resize()
 
 function start()
 {
+	init_menu();
+	
 	canvas = document.getElementById("glcanvas");
 
 	//canvas.onclick=click;
@@ -173,10 +175,12 @@ function next_color() {
 function click(event) {
 	event.preventDefault(); // prevent touch events from emulating a subsequent mousedown
 	
-	if (event.button == 2)
-		next_color();
-
-	clicked=true;
+	if (event.button === 0){ // left mouse button
+		clicked=true;
+		hide_menu();
+	} if (event.button === 2) { // right mouse button
+		show_menu(event);
+	}
 }
 
 function add_vertices(array) // refine structure: replaces each tri by four tris, adding the tri's midpoint as new point
