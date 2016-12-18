@@ -8,7 +8,11 @@ var vLevelAttr;
 var vertices;
 
 var clicked=false;
-var click_animation=false;
+var click_events=[];
+var curr_spike = 1.;
+var prev_spike = 1.;
+var curr_spikespeed = 0;
+var prev_now = 0;
 
 var data_width=15;
 
@@ -41,9 +45,7 @@ function start()
 	initShaders();
 	initBuffers();
 
-	//drawScene();
-
-	requestAnimationFrame(drawScene);
+	drawScene();
 }
 
 function getShader(gl, id) {
@@ -128,13 +130,9 @@ function flatten(arr) {
   }, []);
 }
 
-function click() {
-console.log("click")
-	if (click_animation == false)
-	{
-		clicked=true;
-		click_animation=true;
-	}
+function click(event) {
+	event.preventDefault();
+	clicked=true;
 }
 
 function add_vertices(array)
@@ -317,21 +315,22 @@ function drawScene(now)
 	gl.uniformMatrix4fv(mvUniform, false, mvMatrix);
 
 
-	var spike;
-
 	if (clicked == true)
 	{
-		click_time=now;
+		click_events.push([now, curr_spikespeed]);
+		console.log(curr_spikespeed);
 		clicked=false;
 	}
 
-	if (click_animation)
+	curr_spike = 1;
+
+	for (var i=0; i<click_events.length; i++)
 	{
-		var t = now - click_time;
+		var spike;
+		var t = now - click_events[i][0];
 
 		var s1=0.;
-		var s2=2.;
-		var s3=0.7;
+		var s2=2 * Math.max(1,  1+Math.min(10,-click_events[i][1]/10 ));
 		var sbase=1;
 
 		var t1=100;
@@ -339,6 +338,10 @@ function drawScene(now)
 		var t3=500;
 		var t4=700;
 
+		if (t<t4)
+			console.log(s2, click_events[i][1]);
+
+		var s3=0.7;
 		if (t < t1)
 			spike = cosfade(t/t1, sbase, s1);
 		else if (t < t2)
@@ -348,20 +351,17 @@ function drawScene(now)
 		else if (t < t4)
 			spike = cosfade((t-t3)/(t4-t3), s3, sbase);
 		else
-		{
 			spike = sbase;
-			click_animation = false;
-		}
 
-		spike = spike/2;
-	}
-	else
-	{
-		spike = 0.5;
+		curr_spike *= spike;
 	}
 
+	curr_spikespeed = (curr_spike - prev_spike) / (now - prev_now) * 1000;
+	prev_now = now;
+	prev_spike=curr_spike;
+	
 	var spikeUniform = gl.getUniformLocation(shaderProgram, "spike");
-	gl.uniform1f(spikeUniform, spike);
+	gl.uniform1f(spikeUniform, curr_spike*0.5);
 	//gl.uniform1f(spikeUniform,0.5+0.5* Math.sin(now*3.1415/1000));
 	
 	
