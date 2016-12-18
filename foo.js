@@ -11,7 +11,7 @@ var vRotationAttr;
 var vertices;
 
 // state for clicks
-var clicked=false;
+var clicked=true;
 var click_events=[];
 var curr_spike = 1.;
 var prev_spike = 1.;
@@ -20,6 +20,7 @@ var prev_now = 0;
 
 var EXPLODE_NEVER = 99999999;
 var explosion_time = EXPLODE_NEVER;
+var spawn_time = 0;
 
 var data_width=19; // don't change this. number of floats per vertex
 
@@ -86,7 +87,7 @@ function start()
 	window.addEventListener("resize", resize, false);
 	resize();
 
-	drawScene();
+	requestAnimationFrame(drawScene);
 
 }
 
@@ -399,8 +400,12 @@ function drawScene(now)
 
 	if (clicked == true)
 	{
+		console.log("clicked");
 		if (explosion_time == EXPLODE_NEVER)
+		{
+			console.log("click accepted");
 			click_events.push([now, curr_spikespeed]);
+		}
 		clicked=false;
 	}
 
@@ -447,6 +452,8 @@ function drawScene(now)
 	if (now > explosion_time + 5000)
 	{
 		explosion_time = EXPLODE_NEVER;
+		spawn_time = now;
+		clicked=true;
 	}
 
 	var spikeUniform = gl.getUniformLocation(shaderProgram, "spike");
@@ -461,8 +468,11 @@ function drawScene(now)
 	var colormodeUniform = gl.getUniformLocation(shaderProgram, "colormode");
 	gl.uniform1i(colormodeUniform, colormode);
 	
-	var timeUniform = gl.getUniformLocation(shaderProgram, "time");
-	gl.uniform1f(timeUniform, Math.max(0.,(now-explosion_time)/1000.));
+	var etimeUniform = gl.getUniformLocation(shaderProgram, "explosion_time");
+	gl.uniform1f(etimeUniform, Math.max(0.,(now-explosion_time)/1000.));
+	
+	var stimeUniform = gl.getUniformLocation(shaderProgram, "spawn_time");
+	gl.uniform1f(stimeUniform, Math.max(0.,(now-spawn_time)/1000.));
 	
 	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
 	
