@@ -38,20 +38,19 @@ function start()
 
 	//canvas.onclick=click;
 
-	canvas.addEventListener("mousewheel", function(e) {
-		scroll_y_raw += e.deltaY;
-		scroll_y_raw=Math.min(scroll_y_raw, 2000);
-		scroll_y_raw=Math.max(0,scroll_y_raw);
+	// canvas.addEventListener("mousewheel", function(e) {
+		// scroll_y_raw += e.deltaY;
+		// scroll_y_raw=Math.min(scroll_y_raw, 2000);
+		// scroll_y_raw=Math.max(0,scroll_y_raw);
 		
-		scroll_y = scroll_y_raw/2000.;
+		// scroll_y = scroll_y_raw/2000.;
 		
-		scroll_x_raw -= e.deltaX;
-		scroll_x_raw=Math.min(scroll_x_raw, 2000);
-		scroll_x_raw=Math.max(0,scroll_x_raw);
+		// scroll_x_raw -= e.deltaX;
+		// scroll_x_raw=Math.min(scroll_x_raw, 2000);
+		// scroll_x_raw=Math.max(0,scroll_x_raw);
 		
-		scroll_x = scroll_x_raw/2000.;
-
-	});
+		// scroll_x = scroll_x_raw/2000.;
+	// });
 
 	canvas.addEventListener("mousedown", click)
 	canvas.addEventListener("touchstart", click)
