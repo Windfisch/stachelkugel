@@ -4,6 +4,7 @@
 	<link rel="stylesheet" href="style.css">
 	
 	<script type="text/javascript" src="./gl-matrix.js"></script>
+	<script type="text/javascript" src="./menu.js"></script>
 	<script type="text/javascript" src="./foo.js"></script>
     
 	<script id="shader-fs" type="x-shader/x-fragment">
@@ -102,4 +103,27 @@ precision mediump float;
 <body onload="start()" onscroll="alert('foo')">
 <canvas id="glcanvas">
 </canvas>
+<div id="menu">
+	<div class="menu_item">
+		<label for="rendertype_radio">Rendertype: </label>
+		<form id="rendertype_radio">
+			<input type="radio" id="r0" name="rendertype" value="0" onclick="igitt(this)" checked="checked"/>
+			<label for="r0">0</label>
+			<input type="radio" id="r1" name="rendertype" value="1" onclick="igitt(this)" />
+			<label for="r1">1</label>
+			<input type="radio" id="r2" name="rendertype" value="2" onclick="igitt(this)" />
+			<label for="r2">2</label>
+			<input type="radio" id="r3" name="rendertype" value="3" onclick="igitt(this)" />
+			<label for="r3">3</label>
+		</form>	
+	</div>
+	<div class="menu_entry">
+		<label for="x_slider">X: </label>
+		<input id="x_slider" type="range" min="0" max="1.0" step="0.05" value="0.75" oninput="handle_slider(this)"/>
+	</div>
+	<div class="menu_entry">
+		<label for="y_slider">Y: </label>
+		<input id="y_slider" type="range" min="0" max="1.0" step="0.05" value="0.5" oninput="handle_slider(this)"/>
+	</div>
+</div>
 </body>
