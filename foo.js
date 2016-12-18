@@ -16,6 +16,12 @@ var prev_now = 0;
 
 var data_width=15;
 
+function resize()
+{
+	canvas.height = canvas.clientHeight;
+	canvas.width = canvas.clientWidth;;
+}
+
 function start()
 {
 	canvas = document.getElementById("glcanvas");
@@ -44,8 +50,12 @@ function start()
 
 	initShaders();
 	initBuffers();
+	
+	window.addEventListener("resize", resize, false);
+	resize();
 
 	drawScene();
+
 }
 
 function getShader(gl, id) {
@@ -290,8 +300,11 @@ function drawScene(now)
 	gl.clearColor(1.,1.,1.,1.);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+	gl.viewport(0, 0, canvas.width, canvas.height);
+
+
 	var perspectiveMatrix = mat4.create();
-	mat4.perspective(perspectiveMatrix, 3.1415/14, 1, .1, 100.0);
+	mat4.perspective(perspectiveMatrix, 3.1415/14, canvas.width/canvas.height, .1, 100.0);
 	gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
 	gl.vertexAttribPointer(vPosAttr, 3, gl.FLOAT, false, data_width*4, 0*4);
 	gl.vertexAttribPointer(vColorAttr, 3, gl.FLOAT, false, data_width*4, 3*4);
