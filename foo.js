@@ -16,6 +16,8 @@ var prev_now = 0;
 
 var data_width=15;
 
+var colormode=0;
+
 function resize()
 {
 	canvas.height = canvas.clientHeight;
@@ -30,6 +32,7 @@ function start()
 
 	canvas.addEventListener("mousedown", click)
 	canvas.addEventListener("touchstart", click)
+	document.body.addEventListener("contextmenu", function(e) { e.preventDefault(); e.stopPropagation(); return false; })
 
 	try
 	{
@@ -140,8 +143,16 @@ function flatten(arr) {
   }, []);
 }
 
+function next_color() {
+	colormode = (colormode+1)%4;
+}
+
 function click(event) {
 	event.preventDefault();
+	
+	if (event.button == 2)
+		next_color();
+
 	clicked=true;
 }
 
@@ -250,13 +261,9 @@ function initBuffers()
 			 0,-1, 0,   1,0,1,  42,42,42, 43,43,43, 0,0,0,
 		];
 
-	console.log(add_vertices(vertices));
-
 	for (var i=0; i<4; i++)
 		vertices = add_vertices(vertices);
 	
-	console.log("have "+vertices.length/data_width+" vertices");
-
 	for (var i=0; i<vertices.length/data_width; i+=3)
 	{
 		var v = [
@@ -331,7 +338,6 @@ function drawScene(now)
 	if (clicked == true)
 	{
 		click_events.push([now, curr_spikespeed]);
-		console.log(curr_spikespeed);
 		clicked=false;
 	}
 
@@ -350,9 +356,6 @@ function drawScene(now)
 		var t2=300;
 		var t3=500;
 		var t4=700;
-
-		if (t<t4)
-			console.log(s2, click_events[i][1]);
 
 		var s3=0.7;
 		if (t < t1)
@@ -376,7 +379,10 @@ function drawScene(now)
 	var spikeUniform = gl.getUniformLocation(shaderProgram, "spike");
 	gl.uniform1f(spikeUniform, curr_spike*0.5);
 	//gl.uniform1f(spikeUniform,0.5+0.5* Math.sin(now*3.1415/1000));
-	
+
+	var colormodeUniform = gl.getUniformLocation(shaderProgram, "colormode");
+	console.log(colormodeUniform);
+	gl.uniform1i(colormodeUniform, colormode);
 	
 	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
 	
