@@ -7,6 +7,7 @@ var vColorAttr;
 var vPos2Attr;
 var vPos3Attr;
 var vLevelAttr;
+var vRotationAttr;
 var vertices;
 
 // state for clicks
@@ -17,7 +18,10 @@ var prev_spike = 1.;
 var curr_spikespeed = 0;
 var prev_now = 0;
 
-var data_width=15; // don't change this. number of floats per vertex
+var EXPLODE_NEVER = 99999999;
+var explosion_time = EXPLODE_NEVER;
+
+var data_width=19; // don't change this. number of floats per vertex
 
 var colormode=0; // range: 0-3, passed as uniform 'colormode' to the shaders
 
@@ -160,6 +164,9 @@ function initShaders()
 	vLevelAttr = gl.getAttribLocation(shaderProgram, "aVertexLevels");
 	gl.enableVertexAttribArray(vLevelAttr);
 	
+	vRotationAttr = gl.getAttribLocation(shaderProgram, "aFaceRotation");
+	gl.enableVertexAttribArray(vRotationAttr);
+	
 }
 
 function flatten(arr) {
@@ -227,9 +234,9 @@ function add_vertices(array) // refine structure: replaces each tri by four tris
 			for (var k=0; k<3; k++)
 			{
 				if (k!=j)
-					result = result.concat( v[k], c[k], [42,42,42,43,43,43,  level[k], 0,0] );
+					result = result.concat( v[k], c[k], [42,42,42,43,43,43,  level[k], 0,0,  13,37,13,37] );
 				else
-					result = result.concat( [mid[0],mid[1],mid[2]], [cmid[0],cmid[1],cmid[2]], [42,42,42,43,43,43, newlevel,0,0] );
+					result = result.concat( [mid[0],mid[1],mid[2]], [cmid[0],cmid[1],cmid[2]], [42,42,42,43,43,43, newlevel,0,0, 13,37,13,37] );
 			}
 		}
 	}
@@ -254,63 +261,63 @@ function initBuffers()
 		// after add_vertices(), they get filled in with sensible values
 		// (search for 'fill vertex2,3')
 			// vertex    color   vertex2  vertex3   level1,2,3
-			  1, -1, 1. ,0,0,1, 42,42,42, 43,43,43, 0,0,0,
-			  1,  1, -1, 0,1,0, 42,42,42, 43,43,43, 0,0,0,
-			 -1,  1, 1. ,1,1,0, 42,42,42, 43,43,43, 0,0,0,
+			  1, -1, 1. ,0,0,1, 42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			  1,  1, -1, 0,1,0, 42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			 -1,  1, 1. ,1,1,0, 42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
 
-			 -1, -1, -1, 1,0,0, 42,42,42, 43,43,43, 0,0,0,
-			  1, -1, 1. ,0,0,1, 42,42,42, 43,43,43, 0,0,0,
-			 -1,  1, 1. ,1,1,0, 42,42,42, 43,43,43, 0,0,0,
+			 -1, -1, -1, 1,0,0, 42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			  1, -1, 1. ,0,0,1, 42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			 -1,  1, 1. ,1,1,0, 42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
 
-			  1,  1, -1, 0,1,0, 42,42,42, 43,43,43, 0,0,0,
-			 -1, -1, -1, 1,0,0, 42,42,42, 43,43,43, 0,0,0,
-			 -1,  1, 1. ,1,1,0, 42,42,42, 43,43,43, 0,0,0,
+			  1,  1, -1, 0,1,0, 42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			 -1, -1, -1, 1,0,0, 42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			 -1,  1, 1. ,1,1,0, 42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
 
-			 -1, -1, -1, 1,0,0, 42,42,42, 43,43,43, 0,0,0,
-			  1,  1, -1, 0,1,0, 42,42,42, 43,43,43, 0,0,0,
-			  1, -1, 1. ,0,0,1, 42,42,42, 43,43,43, 0,0,0,
+			 -1, -1, -1, 1,0,0, 42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			  1,  1, -1, 0,1,0, 42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			  1, -1, 1. ,0,0,1, 42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
 
 			  ];
 	else
 	vertices = [
-			 1, 0, 0,   1,0,0,  42,42,42, 43,43,43, 0,0,0,
-			 0, 1, 0,   0,1,0,  42,42,42, 43,43,43, 0,0,0,
-			 0, 0, 1,   0,0,1,  42,42,42, 43,43,43, 0,0,0,
+			 1, 0, 0,   1,0,0,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			 0, 1, 0,   0,1,0,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			 0, 0, 1,   0,0,1,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
 
-			 0, 1, 0,   0,1,0,  42,42,42, 43,43,43, 0,0,0,
-			 1, 0, 0,   1,0,0,  42,42,42, 43,43,43, 0,0,0,
-			 0, 0,-1,   1,1,0,  42,42,42, 43,43,43, 0,0,0,
+			 0, 1, 0,   0,1,0,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			 1, 0, 0,   1,0,0,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			 0, 0,-1,   1,1,0,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
 
-			 0,-1, 0,   1,0,1,  42,42,42, 43,43,43, 0,0,0,
-			 1, 0, 0,   1,0,0,  42,42,42, 43,43,43, 0,0,0,
-			 0, 0, 1,   0,0,1,  42,42,42, 43,43,43, 0,0,0,
+			 0,-1, 0,   1,0,1,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			 1, 0, 0,   1,0,0,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			 0, 0, 1,   0,0,1,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
 
-			 1, 0, 0,   1,0,0,  42,42,42, 43,43,43, 0,0,0,
-			 0,-1, 0,   1,0,1,  42,42,42, 43,43,43, 0,0,0,
-			 0, 0,-1,   1,1,0,  42,42,42, 43,43,43, 0,0,0,
+			 1, 0, 0,   1,0,0,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			 0,-1, 0,   1,0,1,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			 0, 0,-1,   1,1,0,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
 
-			 0, 1, 0,   0,1,0,  42,42,42, 43,43,43, 0,0,0,
-			-1, 0, 0,   0,1,1,  42,42,42, 43,43,43, 0,0,0,
-			 0, 0, 1,   0,0,1,  42,42,42, 43,43,43, 0,0,0,
+			 0, 1, 0,   0,1,0,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			-1, 0, 0,   0,1,1,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			 0, 0, 1,   0,0,1,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
 
-			-1, 0, 0,   0,1,1,  42,42,42, 43,43,43, 0,0,0,
-			 0, 1, 0,   0,1,0,  42,42,42, 43,43,43, 0,0,0,
-			 0, 0,-1,   1,1,0,  42,42,42, 43,43,43, 0,0,0,
+			-1, 0, 0,   0,1,1,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			 0, 1, 0,   0,1,0,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			 0, 0,-1,   1,1,0,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
 
-			-1, 0, 0,   0,1,1,  42,42,42, 43,43,43, 0,0,0,
-			 0,-1, 0,   1,0,1,  42,42,42, 43,43,43, 0,0,0,
-			 0, 0, 1,   0,0,1,  42,42,42, 43,43,43, 0,0,0,
+			-1, 0, 0,   0,1,1,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			 0,-1, 0,   1,0,1,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			 0, 0, 1,   0,0,1,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
 
-			-1, 0, 0,   0,1,1,  42,42,42, 43,43,43, 0,0,0,
-			 0, 0,-1,   1,1,0,  42,42,42, 43,43,43, 0,0,0,
-			 0,-1, 0,   1,0,1,  42,42,42, 43,43,43, 0,0,0,
+			-1, 0, 0,   0,1,1,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			 0, 0,-1,   1,1,0,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
+			 0,-1, 0,   1,0,1,  42,42,42, 43,43,43, 0,0,0, 13,37,13,37,
 		];
 
 	for (var i=0; i<4; i++)
 		vertices = add_vertices(vertices);
 	
 	// fill vertex2,3
-	for (var i=0; i<vertices.length/data_width; i+=3)
+	for (var i=0; i<vertices.length/data_width; i+=3) // for each triangle
 	{
 		var v = [
 			[vertices[data_width*(i+0)+0], vertices[data_width*(i+0)+1], vertices[data_width*(i+0)+2]],
@@ -320,7 +327,11 @@ function initBuffers()
 
 		var levels = [ vertices[data_width*(i+0)+12],  vertices[data_width*(i+1)+12],  vertices[data_width*(i+2)+12] ];
 	
-		for (var j=0; j<3; j++)
+		var rot_axis = vec3.create();
+		vec3.random(rot_axis);
+		var rot_speed = Math.random() * Math.PI * 2 + Math.PI/2;
+
+		for (var j=0; j<3; j++) // for each vector in that triangle
 		{
 			vertices[data_width*(i+j)+6] = v[(j+1)%3][0];
 			vertices[data_width*(i+j)+7] = v[(j+1)%3][1];
@@ -330,6 +341,11 @@ function initBuffers()
 			vertices[data_width*(i+j)+10]= v[(j+2)%3][1];
 			vertices[data_width*(i+j)+11]= v[(j+2)%3][2];
 			vertices[data_width*(i+j)+14] = levels[(j+2)%3];
+
+			vertices[data_width*(i+j)+15] = rot_axis[0];
+			vertices[data_width*(i+j)+16] = rot_axis[1];
+			vertices[data_width*(i+j)+17] = rot_axis[2];
+			vertices[data_width*(i+j)+18] = rot_speed;
 		}
 	}
 	
@@ -338,7 +354,7 @@ function initBuffers()
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 	
 	gl.cullFace(gl.BACK);
-	gl.enable(gl.CULL_FACE);
+	//gl.enable(gl.CULL_FACE); // TODO FIXME lighting need inverted normals now
 }
 
 function cosfade(x, a,b)
@@ -364,6 +380,7 @@ function drawScene(now)
 	gl.vertexAttribPointer(vPos2Attr, 3, gl.FLOAT, false, data_width*4, 6*4);
 	gl.vertexAttribPointer(vPos3Attr, 3, gl.FLOAT, false, data_width*4, 9*4);
 	gl.vertexAttribPointer(vLevelAttr, 3, gl.FLOAT, false, data_width*4, 12*4);
+	gl.vertexAttribPointer(vRotationAttr, 4, gl.FLOAT, false, data_width*4, 15*4);
 
 
 	var mvMatrix = mat4.create();
@@ -382,7 +399,8 @@ function drawScene(now)
 
 	if (clicked == true)
 	{
-		click_events.push([now, curr_spikespeed]);
+		if (explosion_time == EXPLODE_NEVER)
+			click_events.push([now, curr_spikespeed]);
 		clicked=false;
 	}
 
@@ -420,7 +438,17 @@ function drawScene(now)
 	curr_spikespeed = (curr_spike - prev_spike) / (now - prev_now) * 1000;
 	prev_now = now;
 	prev_spike=curr_spike;
-	
+
+	if (curr_spike > 15) // explode
+	{
+		explosion_time = now;
+	}
+
+	if (now > explosion_time + 5000)
+	{
+		explosion_time = EXPLODE_NEVER;
+	}
+
 	var spikeUniform = gl.getUniformLocation(shaderProgram, "spike");
 	gl.uniform1f(spikeUniform, curr_spike*0.5);
 
@@ -432,6 +460,9 @@ function drawScene(now)
 
 	var colormodeUniform = gl.getUniformLocation(shaderProgram, "colormode");
 	gl.uniform1i(colormodeUniform, colormode);
+	
+	var timeUniform = gl.getUniformLocation(shaderProgram, "time");
+	gl.uniform1f(timeUniform, Math.max(0.,(now-explosion_time)/1000.));
 	
 	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
 	
