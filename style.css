@@ -37,9 +37,9 @@ canvas {
 	visibility: hidden;
 	position: fixed;
 	margin: 1%;
-	padding: 0 1%;
+	padding: 0 3%;
 	font-weight: bold;
-	font-size: 200%;
+	font-size: 600%;
 }
 
 label:not(:last-child){
