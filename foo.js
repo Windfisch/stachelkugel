@@ -436,3 +436,7 @@ function drawScene(now)
 function setMatrixUniforms()
 {
 }
+
+function setScrollY(value){
+	scroll_y = value;
+}

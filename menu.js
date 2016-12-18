@@ -26,21 +26,18 @@ function igitt(radio){
 function handle_slider(slider){
 	console.log(slider.id + ": " + slider.value);
 	if (slider.id === "x_slider"){
-		scroll_x = slider.value;
-		scroll_x_raw = slider.value*2000;
+		scroll_x = parseFloat(slider.value);
 	}
-	// ICH HABE KEINE AHNUNG WIESO DAS NICHT GEHT
 	else if (slider.id === "y_slider"){
-		scroll_y = slider.value;
-		scroll_y_raw = slider.value*2000;
+		scroll_y = parseFloat(slider.value);
 	}
 	
 	updateText();
 }
 
 function updateText(){
-	x_slider_value.innerText = scroll_x;
-	y_slider_value.innerText = scroll_y;
+	x_slider_value.innerText = scroll_x.toString();
+	y_slider_value.innerText = scroll_y.toString();
 }
 
 function show_menu(event){
