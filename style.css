@@ -31,3 +31,11 @@ canvas {
 	border-width: 1px;
 	border-color: #BABABA;
 }
+
+#menu_button{
+	position: fixed;
+	margin: 0.1em;
+	padding: 0 0.2em;
+	font-weight: bold;
+	font-size: 200%;
+}

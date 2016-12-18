@@ -174,7 +174,7 @@ function next_color() {
 
 function click(event) {
 	event.preventDefault(); // prevent touch events from emulating a subsequent mousedown
-	
+	console.log(event);
 	if (event.button === 0){ // left mouse button
 		clicked=true;
 		hide_menu();

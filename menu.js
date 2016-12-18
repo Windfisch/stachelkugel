@@ -41,6 +41,7 @@ function updateText(){
 }
 
 function show_menu(event){
+	console.log(event);
 	menu.style.visibility = "visible";
 	menu.style.left = event.clientX;
 	menu.style.top = event.clientY;
