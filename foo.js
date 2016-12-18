@@ -1,5 +1,7 @@
 var gl;
 var vbo;
+
+// webGL attribute handles
 var vPosAttr;
 var vColorAttr;
 var vPos2Attr;
@@ -7,6 +9,7 @@ var vPos3Attr;
 var vLevelAttr;
 var vertices;
 
+// state for clicks
 var clicked=false;
 var click_events=[];
 var curr_spike = 1.;
@@ -14,9 +17,9 @@ var prev_spike = 1.;
 var curr_spikespeed = 0;
 var prev_now = 0;
 
-var data_width=15;
+var data_width=15; // don't change this. number of floats per vertex
 
-var colormode=0;
+var colormode=0; // range: 0-3, passed as uniform 'colormode' to the shaders
 
 var scroll_x=0.75;
 var scroll_x_raw=1500;
@@ -52,7 +55,8 @@ function start()
 
 	canvas.addEventListener("mousedown", click)
 	canvas.addEventListener("touchstart", click)
-	document.body.addEventListener("contextmenu", function(e) { e.preventDefault(); e.stopPropagation(); return false; })
+	
+	document.body.addEventListener("contextmenu", function(e) { e.preventDefault(); e.stopPropagation(); return false; }); // disable annoying context menu
 
 	try
 	{
@@ -168,7 +172,7 @@ function next_color() {
 }
 
 function click(event) {
-	event.preventDefault();
+	event.preventDefault(); // prevent touch events from emulating a subsequent mousedown
 	
 	if (event.button == 2)
 		next_color();
@@ -176,7 +180,7 @@ function click(event) {
 	clicked=true;
 }
 
-function add_vertices(array)
+function add_vertices(array) // refine structure: replaces each tri by four tris, adding the tri's midpoint as new point
 {
 	var result = new Array();
 	var l = array.length / (3*data_width);
@@ -227,8 +231,21 @@ function add_vertices(array)
 
 function initBuffers()
 {
-	if (false)
+	if (false) // either a tetraeder or an octaeder
 	vertices = [ 
+		// we need to calculate the surface normals in the shaders.
+		// As there is no geometry shader in webGL, we have to do
+		// this hack: each vertex knows about the two other vertices
+		// in its triangle, and also about their levels. this is wasteful
+		// about 2/3 of redundant data, but I don't see another way to
+		// emulate the missing geometry shader :|
+		// The `level` is the add_vertices-iteration at which the vertex
+		// was added.
+		//
+		// vertex2, vertex3 and level2,3 are filled with dummy values right now.
+		// after add_vertices(), they get filled in with sensible values
+		// (search for 'fill vertex2,3')
+			// vertex    color   vertex2  vertex3   level1,2,3
 			  1, -1, 1. ,0,0,1, 42,42,42, 43,43,43, 0,0,0,
 			  1,  1, -1, 0,1,0, 42,42,42, 43,43,43, 0,0,0,
 			 -1,  1, 1. ,1,1,0, 42,42,42, 43,43,43, 0,0,0,
@@ -284,6 +301,7 @@ function initBuffers()
 	for (var i=0; i<4; i++)
 		vertices = add_vertices(vertices);
 	
+	// fill vertex2,3
 	for (var i=0; i<vertices.length/data_width; i+=3)
 	{
 		var v = [
@@ -347,7 +365,6 @@ function drawScene(now)
 	mat4.translate(mvMatrix, mvMatrix, [0,0,-20]);
 	mat4.rotate(mvMatrix, mvMatrix, angle, [Math.sin(now/10000) ,Math.cos(now/13000),-.1]);
 
-	//setMatrixUniforms();
 	var pUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
 	gl.uniformMatrix4fv(pUniform, false, perspectiveMatrix);
 	
