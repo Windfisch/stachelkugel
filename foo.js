@@ -18,6 +18,11 @@ var data_width=15;
 
 var colormode=0;
 
+var scroll_x=0.75;
+var scroll_x_raw=1500;
+var scroll_y=0.5;
+var scroll_y_raw=1000;
+
 function resize()
 {
 	canvas.height = canvas.clientHeight;
@@ -29,6 +34,21 @@ function start()
 	canvas = document.getElementById("glcanvas");
 
 	//canvas.onclick=click;
+
+	canvas.addEventListener("mousewheel", function(e) {
+		scroll_y_raw += e.deltaY;
+		scroll_y_raw=Math.min(scroll_y_raw, 2000);
+		scroll_y_raw=Math.max(0,scroll_y_raw);
+		
+		scroll_y = scroll_y_raw/2000.;
+		
+		scroll_x_raw -= e.deltaX;
+		scroll_x_raw=Math.min(scroll_x_raw, 2000);
+		scroll_x_raw=Math.max(0,scroll_x_raw);
+		
+		scroll_x = scroll_x_raw/2000.;
+
+	});
 
 	canvas.addEventListener("mousedown", click)
 	canvas.addEventListener("touchstart", click)
@@ -323,7 +343,7 @@ function drawScene(now)
 	var mvMatrix = mat4.create();
 	mat4.identity(mvMatrix);
 	
-	var angle = now * 3.1415 / 3000;
+	var angle = now * 3.1415 / 6000;
 	mat4.translate(mvMatrix, mvMatrix, [0,0,-20]);
 	mat4.rotate(mvMatrix, mvMatrix, angle, [Math.sin(now/10000) ,Math.cos(now/13000),-.1]);
 
@@ -378,10 +398,14 @@ function drawScene(now)
 	
 	var spikeUniform = gl.getUniformLocation(shaderProgram, "spike");
 	gl.uniform1f(spikeUniform, curr_spike*0.5);
-	//gl.uniform1f(spikeUniform,0.5+0.5* Math.sin(now*3.1415/1000));
+
+	var spikeParam1Uniform = gl.getUniformLocation(shaderProgram, "spikeparam1");
+	gl.uniform1f(spikeParam1Uniform, scroll_y + 0.3*scroll_x*Math.sin(now*3.1415/200) * Math.pow ( Math.sin(now*3.1415/2000), 5)  );
+
+	var spikeParam2Uniform = gl.getUniformLocation(shaderProgram, "spikeparam2");
+	gl.uniform1f(spikeParam2Uniform, scroll_x);
 
 	var colormodeUniform = gl.getUniformLocation(shaderProgram, "colormode");
-	console.log(colormodeUniform);
 	gl.uniform1i(colormodeUniform, colormode);
 	
 	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);

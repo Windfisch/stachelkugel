@@ -58,6 +58,8 @@ precision mediump float;
   uniform mat4 uMVMatrix;
   uniform mat4 uPMatrix;
   uniform float spike;
+  uniform float spikeparam1;
+  uniform float spikeparam2;
   uniform int colormode;
   varying vec3 color;
   varying vec3 normal;
@@ -66,7 +68,7 @@ precision mediump float;
 
   void main(void) {
 
-	vec3 levels = vec3(1,1,1) + 0.025*(0.3+spike) * pow(aVertexLevels, vec3(3.));
+	vec3 levels = vec3(1,1,1) + pow(4., 2.-spikeparam1*2.)* 0.025*(0.3+spike) * pow(aVertexLevels, vec3(spikeparam1*2.+1.));
   
 
   	if (colormode==0)
@@ -108,7 +110,7 @@ precision mediump float;
 
 
 
-<body onload="start()">
+<body onload="start()" onscroll="alert('foo')">
 <canvas id="glcanvas">
 </canvas>
 </body>
