@@ -100,7 +100,7 @@ precision mediump float;
 
 	vec3 mid = (pos + pos2 + pos3).xyz / 3.;
     //normal=normalize(mat3(uMVMatrix)*aVertexNormal);
-    normal = normalize(  normalize( cross( vec3(pos-pos2), vec3(pos-pos3) ) )   +   normalize(pos.xyz-mid) );
+    normal = normalize(  normalize( cross( vec3(pos-pos2), vec3(pos-pos3) ) )   +   2.*(-0.5+spikeparam2)* normalize(pos.xyz-mid) );
     
     //gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
     gl_Position = uPMatrix * pos;
