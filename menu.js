@@ -1,7 +1,20 @@
 var menu;
+var x_slider;
+var x_slider_value;
+var y_slider;
+var y_slider_value;
 
 function init_menu(){
 	menu = document.getElementById("menu");
+	x_slider = document.getElementById("x_slider");
+	x_slider_value = document.getElementById("x_slider_value");
+	y_slider = document.getElementById("y_slider");
+	y_slider_value = document.getElementById("y_slider_value");
+	
+	x_slider.value = scroll_x;
+	y_slider.value = scroll_y;
+	
+	updateText();
 }
 
 function igitt(radio){
@@ -21,6 +34,13 @@ function handle_slider(slider){
 		scroll_y = slider.value;
 		scroll_y_raw = slider.value*2000;
 	}
+	
+	updateText();
+}
+
+function updateText(){
+	x_slider_value.innerText = scroll_x;
+	y_slider_value.innerText = scroll_y;
 }
 
 function show_menu(event){

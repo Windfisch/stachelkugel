@@ -119,11 +119,13 @@ precision mediump float;
 	</div>
 	<div class="menu_entry">
 		<label for="x_slider">X: </label>
-		<input id="x_slider" type="range" min="0" max="1.0" step="0.05" value="0.75" oninput="handle_slider(this)"/>
+		<input id="x_slider" type="range" min="0" max="1.0" step="0.05" oninput="handle_slider(this)"/>
+		<span id="x_slider_value"/>
 	</div>
 	<div class="menu_entry">
 		<label for="y_slider">Y: </label>
-		<input id="y_slider" type="range" min="0" max="1.0" step="0.05" value="0.5" oninput="handle_slider(this)"/>
+		<input id="y_slider" type="range" min="0" max="1.0" step="0.05" oninput="handle_slider(this)"/>
+		<span id="y_slider_value"/>
 	</div>
 </div>
 </body>
