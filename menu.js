@@ -3,6 +3,7 @@ var x_slider;
 var x_slider_value;
 var y_slider;
 var y_slider_value;
+var menu_button;
 
 function init_menu(){
 	menu = document.getElementById("menu");
@@ -11,10 +12,16 @@ function init_menu(){
 	y_slider = document.getElementById("y_slider");
 	y_slider_value = document.getElementById("y_slider_value");
 	
+	menu_button = document.getElementById("menu_button");
+	
 	x_slider.value = scroll_x;
 	y_slider.value = scroll_y;
 	
 	updateText();
+	
+	if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
+		menu_button.style.visibility = "visible";
+	}
 }
 
 function igitt(radio){
@@ -41,7 +48,6 @@ function updateText(){
 }
 
 function show_menu(event){
-	console.log(event);
 	menu.style.visibility = "visible";
 	menu.style.left = event.clientX;
 	menu.style.top = event.clientY;

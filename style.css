@@ -1,5 +1,6 @@
 * {
 	font-family: Arial, Helvetica, sans-serif;
+	font-size: 16px;
 	margin: 0;
 	padding: 0;
 }
@@ -33,9 +34,14 @@ canvas {
 }
 
 #menu_button{
+	visibility: hidden;
 	position: fixed;
-	margin: 0.1em;
-	padding: 0 0.2em;
+	margin: 1%;
+	padding: 0 1%;
 	font-weight: bold;
 	font-size: 200%;
+}
+
+label:not(:last-child){
+	margin-right: 5px;
 }

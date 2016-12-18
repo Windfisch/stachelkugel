@@ -174,12 +174,17 @@ function next_color() {
 
 function click(event) {
 	event.preventDefault(); // prevent touch events from emulating a subsequent mousedown
-	console.log(event);
-	if (event.button === 0){ // left mouse button
+	if(event instanceof MouseEvent){
+		if (event.button === 0){ // left mouse button
+			clicked=true;
+			hide_menu();
+		} if (event.button === 2) { // right mouse button
+			show_menu(event);
+		}
+	}
+	else if (event instanceof TouchEvent) {
 		clicked=true;
 		hide_menu();
-	} if (event.button === 2) { // right mouse button
-		show_menu(event);
 	}
 }
 
