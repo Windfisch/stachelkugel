@@ -356,7 +356,7 @@ function initBuffers()
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 	
 	gl.cullFace(gl.BACK);
-	//gl.enable(gl.CULL_FACE); // TODO FIXME lighting need inverted normals now
+	gl.enable(gl.CULL_FACE); // TODO FIXME lighting need inverted normals now
 }
 
 function cosfade(x, a,b)
@@ -448,6 +448,7 @@ function drawScene(now)
 	if (curr_spike > 15) // explode
 	{
 		explosion_time = now;
+		gl.disable(gl.CULL_FACE); // TODO FIXME lighting need inverted normals now
 	}
 
 	if (now > explosion_time + 5000)
@@ -455,6 +456,7 @@ function drawScene(now)
 		explosion_time = EXPLODE_NEVER;
 		spawn_time = now;
 		clicked=true;
+		gl.enable(gl.CULL_FACE);
 	}
 
 	var spikeUniform = gl.getUniformLocation(shaderProgram, "spike");
