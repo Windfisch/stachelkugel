@@ -10,17 +10,18 @@ var vLevelAttr;
 var vRotationAttr;
 var vertices;
 
+// explosion and respawn counters
+var EXPLODE_NEVER = 99999999;
+var explosion_time = EXPLODE_NEVER;
+var spawn_time = 300;
+
 // state for clicks
-var clicked=true;
-var click_events=[];
+var clicked=false;
+var click_events=[[spawn_time,0]];
 var curr_spike = 1.;
 var prev_spike = 1.;
 var curr_spikespeed = 0;
 var prev_now = 0;
-
-var EXPLODE_NEVER = 99999999;
-var explosion_time = EXPLODE_NEVER;
-var spawn_time = 0;
 
 var data_width=19; // don't change this. number of floats per vertex
 
