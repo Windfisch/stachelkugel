@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 	<link rel="stylesheet" href="style.css">
+	<link rel="icon" href="favicon.ico" type="image/vnd.microsoft.icon">
 	
 	<script type="text/javascript" src="./gl-matrix.js"></script>
 	<script type="text/javascript" src="./menu.js"></script>
@@ -160,7 +161,7 @@ mat4 rotationMatrix(vec3 axis, float angle)
 			<label for="r2">2</label>
 			<input type="radio" id="r3" name="rendertype" value="3" onclick="igitt(this)" />
 			<label for="r3">3</label>
-		</form>	
+		</form>
 	</div>
 	<div class="menu_entry">
 		<label for="x_slider">X: </label>
@@ -171,6 +172,9 @@ mat4 rotationMatrix(vec3 axis, float angle)
 		<label for="y_slider">Y: </label>
 		<input id="y_slider" type="range" min="0" max="1.0" step="0.05" oninput="handle_slider(this)"/>
 		<span id="y_slider_value"/>
+	</div>
+	<div class="menu_entry">
+		<a href="https://github.com/Windfisch/stachelkugel">Source @ GitHub</a>
 	</div>
 </div>
 </body>
