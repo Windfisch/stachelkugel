@@ -9,5 +9,5 @@ Controls:
 	- mouse wheel Y: adjust spikes
 	- mouse wheel X: adjust breathing
 
-Try it out at https://hawo.net/~ki08jofa/fancy.html
+Try it out at https://hawo.net/~ki08jofa/fancy/
 
