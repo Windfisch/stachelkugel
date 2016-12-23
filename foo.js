@@ -123,7 +123,7 @@ function start()
 	window.addEventListener("resize", resize, false);
 	resize();
 
-	requestAnimationFrame(drawScene);
+	requestAnimationFrame(animation_frame);
 
 }
 
@@ -462,46 +462,19 @@ function drawDebug(now)
 	gl.enable(gl.DEPTH_TEST);
 }
 
-function drawScene(now)
+
+function animation_frame(now)
 {
-	gl.useProgram(shaderProgram);
-	
-	gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer_shadow);
-	//gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+	handle_input(now);
+	calc_stuff(now);
+	drawScene(now);
+	drawDebug(now);
 
-	gl.clearColor(1.,1.,1.,1.);
-	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-	gl.enable(gl.DEPTH_TEST);
-	
+	requestAnimationFrame(animation_frame);
+}
 
-	gl.viewport(0, 0, shadowsize_x, shadowsize_y);
-
-
-	var perspectiveMatrix = mat4.create();
-	mat4.perspective(perspectiveMatrix, 3.1415/14, canvas.width/canvas.height, 10, 50.0);
-	gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-	gl.vertexAttribPointer(vPosAttr, 3, gl.FLOAT, false, data_width*4, 0*4);
-	gl.vertexAttribPointer(vColorAttr, 3, gl.FLOAT, false, data_width*4, 3*4);
-	gl.vertexAttribPointer(vPos2Attr, 3, gl.FLOAT, false, data_width*4, 6*4);
-	gl.vertexAttribPointer(vPos3Attr, 3, gl.FLOAT, false, data_width*4, 9*4);
-	gl.vertexAttribPointer(vLevelAttr, 3, gl.FLOAT, false, data_width*4, 12*4);
-	gl.vertexAttribPointer(vRotationAttr, 4, gl.FLOAT, false, data_width*4, 15*4);
-
-
-	var mvMatrix = mat4.create();
-	mat4.identity(mvMatrix);
-	
-	var angle = now * 3.1415 / 6000;
-	mat4.translate(mvMatrix, mvMatrix, [0,0,-20]);
-	mat4.rotate(mvMatrix, mvMatrix, angle, [Math.sin(now/10000) ,Math.cos(now/13000),-.1]);
-
-	var pUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
-	gl.uniformMatrix4fv(pUniform, false, perspectiveMatrix);
-	
-	var mvUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
-	gl.uniformMatrix4fv(mvUniform, false, mvMatrix);
-
-
+function handle_input(now)
+{
 	if (clicked == true)
 	{
 		console.log("clicked");
@@ -512,7 +485,10 @@ function drawScene(now)
 		}
 		clicked=false;
 	}
+}
 
+function calc_stuff(now)
+{
 	curr_spike = 1;
 
 	for (var i=0; i<click_events.length; i++)
@@ -561,6 +537,53 @@ function drawScene(now)
 		clicked=true;
 		gl.enable(gl.CULL_FACE);
 	}
+}
+
+function drawScene(now)
+{
+	gl.viewport(0, 0, shadowsize_x, shadowsize_y);
+	gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer_shadow);
+	gl.useProgram(shaderProgram);
+
+	gl.clearColor(1.,1.,1.,1.);
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+	gl.enable(gl.DEPTH_TEST);
+	
+	var perspectiveMatrix = mat4.create();
+	mat4.perspective(perspectiveMatrix, 3.1415/14, canvas.width/canvas.height, 10, 40.0);
+
+	var mvMatrix = mat4.create();
+	mat4.identity(mvMatrix);
+	
+	var angle = now * 3.1415 / 6000;
+	mat4.translate(mvMatrix, mvMatrix, [0,0,-20]);
+	mat4.rotate(mvMatrix, mvMatrix, angle, [Math.sin(now/10000) ,Math.cos(now/13000),-.1]);
+
+	setup_vbo();
+	set_uniforms(now, perspectiveMatrix, mvMatrix);
+
+	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
+	drawDebug();
+}
+
+function setup_vbo()
+{
+	gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+	gl.vertexAttribPointer(vPosAttr, 3, gl.FLOAT, false, data_width*4, 0*4);
+	gl.vertexAttribPointer(vColorAttr, 3, gl.FLOAT, false, data_width*4, 3*4);
+	gl.vertexAttribPointer(vPos2Attr, 3, gl.FLOAT, false, data_width*4, 6*4);
+	gl.vertexAttribPointer(vPos3Attr, 3, gl.FLOAT, false, data_width*4, 9*4);
+	gl.vertexAttribPointer(vLevelAttr, 3, gl.FLOAT, false, data_width*4, 12*4);
+	gl.vertexAttribPointer(vRotationAttr, 4, gl.FLOAT, false, data_width*4, 15*4);
+}
+
+function set_uniforms(now, perspectiveMatrix, mvMatrix)
+{
+	var pUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+	gl.uniformMatrix4fv(pUniform, false, perspectiveMatrix);
+	
+	var mvUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+	gl.uniformMatrix4fv(mvUniform, false, mvMatrix);
 
 	var spikeUniform = gl.getUniformLocation(shaderProgram, "spike");
 	gl.uniform1f(spikeUniform, curr_spike*0.5);
@@ -579,15 +602,6 @@ function drawScene(now)
 	
 	var stimeUniform = gl.getUniformLocation(shaderProgram, "spawn_time");
 	gl.uniform1f(stimeUniform, Math.max(0.,(now-spawn_time)/1000.));
-	
-	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
-	drawDebug();
-	
-	requestAnimationFrame(drawScene);
-}
-
-function setMatrixUniforms()
-{
 }
 
 function setScrollY(value){
