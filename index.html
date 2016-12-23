@@ -36,6 +36,7 @@
 		varying vec3 color;
 		varying vec3 normal;
 		varying vec4 pos;
+		varying vec4 light_gl_Position;
 
 		const vec3 light_pos = vec3(10,5,-10);
 
@@ -58,6 +59,7 @@
 
 
 			gl_FragColor = vec4(amb+dif+spe,1);
+			gl_FragColor = vec4(vec3(light_gl_Position.z/light_gl_Position.w),1);
 		}
 	</script>
 
@@ -71,6 +73,7 @@ precision mediump float;
   attribute vec4 aFaceRotation;
 
   uniform mat4 uMVMatrix;
+  uniform mat4 uLightMVPMatrix;
   uniform mat4 uPMatrix;
   uniform float spike;
   uniform float spikeparam1;
@@ -81,6 +84,7 @@ precision mediump float;
   varying vec3 color;
   varying vec3 normal;
   varying vec4 pos;
+  varying vec4 light_gl_Position;
   
   
 mat4 rotationMatrix(vec3 axis, float angle)
@@ -155,7 +159,7 @@ mat4 rotationMatrix(vec3 axis, float angle)
 
 	vec3 mid = (pos + pos2 + pos3).xyz / 3.;
 	
-
+	light_gl_Position = uLightMVPMatrix * mpos1;
 
 
 //normal=normalize(mat3(uMVMatrix)*aVertexNormal);

@@ -123,6 +123,7 @@ function start()
 	window.addEventListener("resize", resize, false);
 	resize();
 
+	//animation_frame(0);
 	requestAnimationFrame(animation_frame);
 
 }
@@ -468,7 +469,7 @@ function animation_frame(now)
 	handle_input(now);
 	calc_stuff(now);
 	drawScene(now);
-	drawDebug(now);
+	//drawDebug(now);
 
 	requestAnimationFrame(animation_frame);
 }
@@ -545,7 +546,7 @@ function drawScene(now)
 	mat4.perspective(perspectiveMatrix, 3.1415/14, canvas.width/canvas.height, 10, 40.0);
 
 	var perspectiveMatrixLight = mat4.create();
-	mat4.perspective(perspectiveMatrixLight, 3.1415/14, shadowsize_x/shadowsize_y, 10, 40.0);
+	mat4.perspective(perspectiveMatrixLight, 3.1415/8, shadowsize_x/shadowsize_y, 3, 20.0);
 
 	var angle = now * 3.1415 / 6000;
 	var axis = [Math.sin(now/10000) ,Math.cos(now/13000),-.1];
@@ -557,9 +558,12 @@ function drawScene(now)
 
 	var mvMatrixLight = mat4.create();
 	mat4.identity(mvMatrixLight);
-	mat4.translate(mvMatrixLight, mvMatrixLight, [-0,0,-20]);
+	mat4.rotate(mvMatrixLight,mvMatrixLight, 0.4, [0,1,0]);
+	mat4.translate(mvMatrixLight, mvMatrixLight, [4.5,0,-10]);
 	mat4.rotate(mvMatrixLight, mvMatrixLight, angle, axis);
 
+	var mvpMatrixLight = mat4.clone(perspectiveMatrixLight);
+	mat4.mul(mvpMatrixLight, mvpMatrixLight, mvMatrixLight);
 	
 	gl.useProgram(shaderProgram);
 	setup_vbo();
@@ -570,17 +574,17 @@ function drawScene(now)
 	gl.enable(gl.DEPTH_TEST);
 	gl.clear(gl.DEPTH_BUFFER_BIT);
 	
-	set_uniforms(now, perspectiveMatrixLight, mvMatrixLight);
+	set_uniforms(now, perspectiveMatrixLight, mvMatrixLight, mvpMatrixLight);
 	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
 	
 	
-	gl.viewport(0, 0, canvas.width, canvas.height);
+	gl.viewport(0, 0, canvas.width, canvas.height, mvpMatrixLight);
 	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 	gl.colorMask(true,true,true,true);
 	gl.enable(gl.DEPTH_TEST);
 	gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 	
-	set_uniforms(now, perspectiveMatrix, mvMatrix);
+	set_uniforms(now, perspectiveMatrix, mvMatrix, mvpMatrixLight);
 	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
 }
 
@@ -595,13 +599,16 @@ function setup_vbo()
 	gl.vertexAttribPointer(vRotationAttr, 4, gl.FLOAT, false, data_width*4, 15*4);
 }
 
-function set_uniforms(now, perspectiveMatrix, mvMatrix)
+function set_uniforms(now, perspectiveMatrix, mvMatrix, light_mvpMatrix)
 {
 	var pUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
 	gl.uniformMatrix4fv(pUniform, false, perspectiveMatrix);
 	
 	var mvUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
 	gl.uniformMatrix4fv(mvUniform, false, mvMatrix);
+
+	var lmvpUniform = gl.getUniformLocation(shaderProgram, "uLightMVPMatrix");
+	gl.uniformMatrix4fv(lmvpUniform, false, light_mvpMatrix);
 
 	var spikeUniform = gl.getUniformLocation(shaderProgram, "spike");
 	gl.uniform1f(spikeUniform, curr_spike*0.5);
