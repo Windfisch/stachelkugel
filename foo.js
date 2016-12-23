@@ -582,6 +582,7 @@ function drawScene(now)
 	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 	gl.colorMask(true,true,true,true);
 	gl.enable(gl.DEPTH_TEST);
+	gl.clearColor(1.,1.,1.,1.);
 	gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 	
 	set_uniforms(now, perspectiveMatrix, mvMatrix, mvpMatrixLight);
