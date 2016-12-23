@@ -32,6 +32,13 @@ var scroll_x_raw=1500;
 var scroll_y=0.5;
 var scroll_y_raw=1000;
 
+var doShadows = false;
+var depthTextureExt;
+var depthTexture;
+var shadowsize_x = 256;
+var shadowsize_y = 256;
+var framebuffer_shadow = null;
+
 function resize()
 {
 	canvas.height = canvas.clientHeight;
@@ -44,7 +51,7 @@ function start()
 	
 	canvas = document.getElementById("glcanvas");
 
-	//canvas.onclick=click;
+//canvas.onclick=click;
 
 	// canvas.addEventListener("mousewheel", function(e) {
 		// scroll_y_raw += e.deltaY;
@@ -76,11 +83,39 @@ function start()
 		return;
 	}
 
+	
+	depthTextureExt = gl.getExtension("WEBKIT_WEBGL_depth_texture"); // Or browser-appropriate prefix
+	if(!depthTextureExt)
+	{
+		alert("no depth texture extension");
+		doShadows = false;
+	}
+	else
+	{
+		alert("woop woop");
+	
+	// Create the depth texture
+		depthTexture = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, depthTexture);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT, shadowsize_x, shadowsize_y, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT, null);
+
+		framebuffer_shadow = gl.createFramebuffer();
+		gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer_shadow);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTexture, 0);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		doShadows = true;
+	}
+
 
 	gl.clearColor(1.,0.,1.,1.);
 	gl.enable(gl.DEPTH_TEST);
 	gl.depthFunc(gl.LEQUAL);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
 
 	initShaders();
 	initBuffers();
@@ -370,6 +405,16 @@ function drawScene(now)
 {
 	gl.clearColor(1.,1.,1.,1.);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+	
+	
+	gl.clearDepth(0.9958);
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+	gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer_shadow);
+	gl.clearDepth(1.0);
+	gl.clear(gl.DEPTH_BUFFER_BIT);
+	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
 
 	gl.viewport(0, 0, canvas.width, canvas.height);
 
