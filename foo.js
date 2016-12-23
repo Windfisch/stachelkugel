@@ -627,6 +627,11 @@ function set_uniforms(now, perspectiveMatrix, mvMatrix, light_mvpMatrix)
 	
 	var stimeUniform = gl.getUniformLocation(shaderProgram, "spawn_time");
 	gl.uniform1f(stimeUniform, Math.max(0.,(now-spawn_time)/1000.));
+	
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_2D, depthTexture);
+	gl.uniform1i(gl.getUniformLocation(debugShaderProgram, "depth_map"), 0);
+
 }
 
 function setScrollY(value){
