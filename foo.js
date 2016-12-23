@@ -312,8 +312,8 @@ function initBuffers()
 			   -1, -1,
 			    1, -1,
 
-			    1,  1,
 			   -1, -1,
+			    1,  1,
 			   -1,  1 ];
 
 	debug_vbo = gl.createBuffer();
@@ -442,15 +442,22 @@ function cosfade(x, a,b)
 
 function drawDebug(now)
 {
+	gl.useProgram(debugShaderProgram);
+	
 	gl.clearColor(1.,1.,0.,1.);
-	gl.clear(gl.COLOR_BUFFER_BIT);
+	gl.clear(gl.COLOR_BUFFER_BIT)
+	gl.disable(gl.DEPTH_TEST);
+	
+	gl.viewport(0,0, canvas.width, canvas.height);
+	
 	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, depthTexture);
 	gl.uniform1i(gl.getUniformLocation(debugShaderProgram, "tex"), 0);
 
-	gl.viewport(0,0, canvas.width, canvas.height);
-	//gl.vertexAttribPointer(
+	gl.bindBuffer(gl.ARRAY_BUFFER, debug_vbo);
+	gl.vertexAttribPointer(vDebugPointAttr, 2, gl.FLOAT, false, 0,0);
 
+	gl.drawArrays(gl.TRIANGLES, 0, 6);
 }
 
 function drawScene(now)
@@ -577,6 +584,7 @@ function drawScene(now)
 	gl.uniform1f(stimeUniform, Math.max(0.,(now-spawn_time)/1000.));
 	
 	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
+	drawDebug();
 	
 	requestAnimationFrame(drawScene);
 }
