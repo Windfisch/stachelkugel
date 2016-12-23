@@ -35,8 +35,8 @@ var scroll_y_raw=1000;
 var doShadows = false;
 var depthTextureExt;
 var depthTexture;
-var shadowsize_x = 256;
-var shadowsize_y = 256;
+var shadowsize_x = 1024;
+var shadowsize_y = 1024;
 var framebuffer_shadow = null;
 
 function resize()
@@ -446,8 +446,8 @@ function drawDebug(now)
 	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 	
 	gl.clearColor(1.,1.,0.,1.);
-	gl.clear(gl.COLOR_BUFFER_BIT)
 	gl.disable(gl.DEPTH_TEST);
+	gl.clear(gl.DEPTH_BUFFER_BIT)
 	
 	gl.viewport(0,0, canvas.width, canvas.height);
 	
@@ -466,24 +466,19 @@ function drawScene(now)
 {
 	gl.useProgram(shaderProgram);
 	
-	gl.clearColor(1.,1.,1.,1.);
-	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-	
-	
-	gl.clearDepth(0.9958);
-	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
 	gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer_shadow);
-	gl.clearDepth(1.0);
-	gl.clear(gl.DEPTH_BUFFER_BIT);
 	//gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
+	gl.clearColor(1.,1.,1.,1.);
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+	gl.enable(gl.DEPTH_TEST);
+	
 
-	gl.viewport(0, 0, canvas.width, canvas.height);
+	gl.viewport(0, 0, shadowsize_x, shadowsize_y);
 
 
 	var perspectiveMatrix = mat4.create();
-	mat4.perspective(perspectiveMatrix, 3.1415/14, canvas.width/canvas.height, .1, 100.0);
+	mat4.perspective(perspectiveMatrix, 3.1415/14, canvas.width/canvas.height, 10, 50.0);
 	gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
 	gl.vertexAttribPointer(vPosAttr, 3, gl.FLOAT, false, data_width*4, 0*4);
 	gl.vertexAttribPointer(vColorAttr, 3, gl.FLOAT, false, data_width*4, 3*4);
