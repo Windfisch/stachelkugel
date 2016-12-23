@@ -7,7 +7,29 @@
 	<script type="text/javascript" src="./gl-matrix.js"></script>
 	<script type="text/javascript" src="./menu.js"></script>
 	<script type="text/javascript" src="./foo.js"></script>
-    
+   
+<script id="shader-debugvs" type="x-shader/x-vertex">
+	precision mediump float;
+	attribute vec2 point;
+	varying vec2 coord;
+
+	void main(void)
+	{
+		coord = vec2(0.5,0.5) + point/2.;
+		gl_Position = vec4(point,1,1);
+	}
+</script>
+
+<script id="shader-debugfs" type="x-shader/x-fragment">
+	precision mediump float;
+	varying vec2 coord;
+	uniform sampler2D tex;
+
+	void main(void) {
+		gl_FragColor = texture2D(tex, coord);
+	}
+</script>
+
 	<script id="shader-fs" type="x-shader/x-fragment">
 		precision mediump float;
 		varying vec3 color;

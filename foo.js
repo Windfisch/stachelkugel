@@ -172,6 +172,30 @@ function getShader(gl, id) {
 
 function initShaders()
 {
+	initDrawShader();
+	initDebugShader();
+}
+
+function initDebugShader()
+{
+	var fragmentShader = getShader(gl, "shader-debugfs");
+	var vertexShader = getShader(gl, "shader-debugvs");
+
+	debugShaderProgram = gl.createProgram();
+	gl.attachShader(debugShaderProgram, vertexShader);
+	gl.attachShader(debugShaderProgram, fragmentShader);
+	gl.linkProgram(debugShaderProgram);
+
+	gl.useProgram(debugShaderProgram);
+
+	vDebugPointAttr = gl.getAttribLocation(debugShaderProgram, "point");
+	gl.enableVertexAttribArray(debugShaderProgram, vDebugPointAttr);
+
+	gl.useProgram(null);
+}
+
+function initDrawShader()
+{
 	var fragmentShader = getShader(gl, "shader-fs");
 	var vertexShader = getShader(gl, "shader-vs");
 
@@ -204,6 +228,7 @@ function initShaders()
 	vRotationAttr = gl.getAttribLocation(shaderProgram, "aFaceRotation");
 	gl.enableVertexAttribArray(vRotationAttr);
 	
+	gl.useProgram(null);
 }
 
 function flatten(arr) {
@@ -283,6 +308,19 @@ function add_vertices(array) // refine structure: replaces each tri by four tris
 
 function initBuffers()
 {
+	debug_vertices = [  1,  1,
+			   -1, -1,
+			    1, -1,
+
+			    1,  1,
+			   -1, -1,
+			   -1,  1 ];
+
+	debug_vbo = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, debug_vbo);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(debug_vertices), gl.STATIC_DRAW);
+	gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
 	if (false) // either a tetraeder or an octaeder
 	vertices = [ 
 		// we need to calculate the surface normals in the shaders.
@@ -389,6 +427,7 @@ function initBuffers()
 	vbo = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+	gl.bindBuffer(gl.ARRAY_BUFFER, null);
 	
 	gl.cullFace(gl.BACK);
 	gl.enable(gl.CULL_FACE); // TODO FIXME lighting need inverted normals now
@@ -401,8 +440,23 @@ function cosfade(x, a,b)
 	return (c*b + (1-c)*a);
 }
 
+function drawDebug(now)
+{
+	gl.clearColor(1.,1.,0.,1.);
+	gl.clear(gl.COLOR_BUFFER_BIT);
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_2D, depthTexture);
+	gl.uniform1i(gl.getUniformLocation(debugShaderProgram, "tex"), 0);
+
+	gl.viewport(0,0, canvas.width, canvas.height);
+	//gl.vertexAttribPointer(
+
+}
+
 function drawScene(now)
 {
+	gl.useProgram(shaderProgram);
+	
 	gl.clearColor(1.,1.,1.,1.);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	
