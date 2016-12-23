@@ -541,29 +541,47 @@ function calc_stuff(now)
 
 function drawScene(now)
 {
-	gl.viewport(0, 0, shadowsize_x, shadowsize_y);
-	gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer_shadow);
-	gl.useProgram(shaderProgram);
-
-	gl.clearColor(1.,1.,1.,1.);
-	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-	gl.enable(gl.DEPTH_TEST);
-	
 	var perspectiveMatrix = mat4.create();
 	mat4.perspective(perspectiveMatrix, 3.1415/14, canvas.width/canvas.height, 10, 40.0);
 
+	var perspectiveMatrixLight = mat4.create();
+	mat4.perspective(perspectiveMatrixLight, 3.1415/14, shadowsize_x/shadowsize_y, 10, 40.0);
+
+	var angle = now * 3.1415 / 6000;
+	var axis = [Math.sin(now/10000) ,Math.cos(now/13000),-.1];
+	
 	var mvMatrix = mat4.create();
 	mat4.identity(mvMatrix);
-	
-	var angle = now * 3.1415 / 6000;
 	mat4.translate(mvMatrix, mvMatrix, [0,0,-20]);
-	mat4.rotate(mvMatrix, mvMatrix, angle, [Math.sin(now/10000) ,Math.cos(now/13000),-.1]);
+	mat4.rotate(mvMatrix, mvMatrix, angle, axis);
 
+	var mvMatrixLight = mat4.create();
+	mat4.identity(mvMatrixLight);
+	mat4.translate(mvMatrixLight, mvMatrixLight, [-0,0,-20]);
+	mat4.rotate(mvMatrixLight, mvMatrixLight, angle, axis);
+
+	
+	gl.useProgram(shaderProgram);
 	setup_vbo();
-	set_uniforms(now, perspectiveMatrix, mvMatrix);
-
+	
+	gl.viewport(0, 0, shadowsize_x, shadowsize_y);
+	gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer_shadow);
+	gl.colorMask(false,false,false,false);
+	gl.enable(gl.DEPTH_TEST);
+	gl.clear(gl.DEPTH_BUFFER_BIT);
+	
+	set_uniforms(now, perspectiveMatrixLight, mvMatrixLight);
 	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
-	drawDebug();
+	
+	
+	gl.viewport(0, 0, canvas.width, canvas.height);
+	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+	gl.colorMask(true,true,true,true);
+	gl.enable(gl.DEPTH_TEST);
+	gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
+	
+	set_uniforms(now, perspectiveMatrix, mvMatrix);
+	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
 }
 
 function setup_vbo()
