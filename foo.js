@@ -443,6 +443,7 @@ function cosfade(x, a,b)
 function drawDebug(now)
 {
 	gl.useProgram(debugShaderProgram);
+	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 	
 	gl.clearColor(1.,1.,0.,1.);
 	gl.clear(gl.COLOR_BUFFER_BIT)
@@ -458,6 +459,7 @@ function drawDebug(now)
 	gl.vertexAttribPointer(vDebugPointAttr, 2, gl.FLOAT, false, 0,0);
 
 	gl.drawArrays(gl.TRIANGLES, 0, 6);
+	gl.enable(gl.DEPTH_TEST);
 }
 
 function drawScene(now)
@@ -474,7 +476,7 @@ function drawScene(now)
 	gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer_shadow);
 	gl.clearDepth(1.0);
 	gl.clear(gl.DEPTH_BUFFER_BIT);
-	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+	//gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
 
 	gl.viewport(0, 0, canvas.width, canvas.height);
