@@ -39,6 +39,12 @@ var shadowsize_x = 1024;
 var shadowsize_y = 1024;
 var framebuffer_shadow = null;
 
+
+var fps_lastsecond = 0;
+var fps_lastframe = 0;
+var fps_maxduration = 0;
+var fps_count = 0;
+
 function resize()
 {
 	canvas.height = canvas.clientHeight;
@@ -463,6 +469,23 @@ function drawDebug(now)
 	gl.enable(gl.DEPTH_TEST);
 }
 
+function log_fps(now)
+{
+	var frameduration = now - fps_lastframe;
+	fps_lastframe = now;
+
+	if (fps_maxduration < frameduration)
+		fps_maxduration = frameduration;
+	
+	if (now > fps_lastsecond + 1000)
+	{
+		console.log("FPS: "+fps_count+", max. frameduration = "+fps_maxduration+" ("+1000/fps_maxduration+" FPS)");
+		fps_count=0;
+		fps_maxduration=0;
+		fps_lastsecond=now;
+	}
+	fps_count++;
+}
 
 function animation_frame(now)
 {
@@ -470,6 +493,7 @@ function animation_frame(now)
 	calc_stuff(now);
 	drawScene(now);
 	//drawDebug(now);
+	log_fps(now);
 
 	requestAnimationFrame(animation_frame);
 }
