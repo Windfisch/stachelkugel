@@ -31,6 +31,26 @@
 	}
 </script>
 
+	<script id="shader-fs-depthtocolor" type="x-shader/x-fragment">
+		precision mediump float;
+		varying vec4 pos;
+		void main(void)
+		{
+			int val = int(256.*256.*256.*clamp(gl_FragCoord.z, 0.0, 0.99999999));
+
+			int r = val / (256*256);
+			val -= r*256*256;
+
+			int g = val / 256;
+			val -= g*256;
+
+			int b = val;
+			
+			gl_FragColor = vec4(vec3(float(r)/256.,float(g)/256.,float(b)/256.),1);
+			gl_FragColor = vec4(vec3(gl_FragCoord.z,0,0),1);
+		}
+	</script>
+
 	<script id="shader-fs" type="x-shader/x-fragment">
 		precision mediump float;
 		varying vec3 color;
@@ -66,7 +86,7 @@
 			vec2 texcoord = light_glPos_dehom.xy / 2. + vec2(0.5,0.5);
 			float l_dist = light_glPos_dehom.z;
 			
-			float l_depth = -1.+2.*texture2D(depth_map, texcoord).r;
+			float l_depth = -1.+2.* dot(vec3(1.,1./256.,1./256./256.), texture2D(depth_map, texcoord).rgb);
 
 			//gl_FragColor = vec4(vec3(l_depth), 1);
 			//gl_FragColor = vec4(vec3(l_dist), 1);
@@ -82,6 +102,7 @@
 			
 			
 			gl_FragColor = vec4(amb+dif+spe,1);
+			//gl_FragColor = vec4(vec3(0.5),1);
 		}
 	</script>
 

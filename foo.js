@@ -10,6 +10,9 @@ var vLevelAttr;
 var vRotationAttr;
 var vertices;
 
+var shaderProgram;
+var depthToColorShaderProgram;
+
 // explosion and respawn counters
 var EXPLODE_NEVER = 99999999;
 var explosion_time = EXPLODE_NEVER;
@@ -33,6 +36,7 @@ var scroll_y=0.5;
 var scroll_y_raw=1000;
 
 var doShadows = false;
+var haveDepthTexture = false;
 var depthTextureExt;
 var depthTexture;
 var shadowsize_x = 512;
@@ -91,14 +95,37 @@ function start()
 
 	
 	depthTextureExt = gl.getExtension("WEBGL_depth_texture") || gl.getExtension("MOZ_WEBGL_depth_texture") || gl.getExtension("WEBKIT_WEBGL_depth_texture"); // Or browser-appropriate prefix
+	depthTextureExt = null; //TODO
 	if(!depthTextureExt)
 	{
 		alert("no depth texture extension");
-		doShadows = false;
+		doShadows = true;
+		haveDepthTexture = false;
+
+		framebuffer_shadow = gl.createFramebuffer();
+		gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer_shadow);
+
+		depthTexture = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, depthTexture);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, shadowsize_x, shadowsize_y, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, depthTexture, 0);
+
+		var depth_renderbuffer = gl.createRenderbuffer();
+		gl.bindRenderbuffer(gl.RENDERBUFFER, depth_renderbuffer);
+		gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, shadowsize_x, shadowsize_y);
+		gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depth_renderbuffer);
+		gl.bindTexture(gl.TEXTURE_2D, null);
+		gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 	}
 	else
 	{
 		alert("woop woop");
+		haveDepthTexture = true; // FIXME
 	
 	// Create the depth texture
 		depthTexture = gl.createTexture();
@@ -180,6 +207,7 @@ function getShader(gl, id) {
 function initShaders()
 {
 	initDrawShader();
+	initDepthToColorShader();
 	initDebugShader();
 }
 
@@ -198,6 +226,40 @@ function initDebugShader()
 	vDebugPointAttr = gl.getAttribLocation(debugShaderProgram, "point");
 	gl.enableVertexAttribArray(debugShaderProgram, vDebugPointAttr);
 
+	gl.useProgram(null);
+}
+
+function initDepthToColorShader()
+{
+	var fragmentShader = getShader(gl, "shader-fs-depthtocolor");
+	var vertexShader = getShader(gl, "shader-vs");
+
+	depthToColorShaderProgram = gl.createProgram();
+	gl.attachShader(depthToColorShaderProgram, vertexShader);
+	gl.attachShader(depthToColorShaderProgram, fragmentShader);
+	gl.linkProgram(depthToColorShaderProgram);
+
+	if (!gl.getProgramParameter(depthToColorShaderProgram, gl.LINK_STATUS))
+	{
+		alert("failed to link shader program" + gl.getProgramInfoLog(depthToColorShaderProgram));
+	}
+
+	gl.useProgram(depthToColorShaderProgram);
+
+	vPosAttr = gl.getAttribLocation(depthToColorShaderProgram, "aVertexPosition");
+	gl.enableVertexAttribArray(vPosAttr);
+	
+	vPos2Attr = gl.getAttribLocation(depthToColorShaderProgram, "aVertexPosition2");
+	gl.enableVertexAttribArray(vPos2Attr);
+	vPos3Attr = gl.getAttribLocation(depthToColorShaderProgram, "aVertexPosition3");
+	gl.enableVertexAttribArray(vPos3Attr);
+	
+	vLevelAttr = gl.getAttribLocation(depthToColorShaderProgram, "aVertexLevels");
+	gl.enableVertexAttribArray(vLevelAttr);
+	
+	vRotationAttr = gl.getAttribLocation(depthToColorShaderProgram, "aFaceRotation");
+	gl.enableVertexAttribArray(vRotationAttr);
+	
 	gl.useProgram(null);
 }
 
@@ -588,19 +650,32 @@ function drawScene(now)
 
 	var mvpMatrixLight = mat4.clone(perspectiveMatrixLight);
 	mat4.mul(mvpMatrixLight, mvpMatrixLight, mvMatrixLight);
-	
-	gl.useProgram(shaderProgram);
+
+	gl.useProgram(depthToColorShaderProgram);
 	setup_vbo();
 	
 	gl.viewport(0, 0, shadowsize_x, shadowsize_y);
 	gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer_shadow);
-	gl.colorMask(false,false,false,false);
+	if (haveDepthTexture)
+	{
+		gl.colorMask(false,false,false,false);
+		gl.clear(gl.DEPTH_BUFFER_BIT);
+	}
+	else
+	{
+		gl.colorMask(true,true,true,true);
+		gl.clearColor(1,1,1,0);
+		gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
+	}
 	gl.enable(gl.DEPTH_TEST);
-	gl.clear(gl.DEPTH_BUFFER_BIT);
 	
-	set_uniforms(now, perspectiveMatrixLight, mvMatrixLight, mvpMatrixLight);
+	set_uniforms(now, depthToColorShaderProgram, perspectiveMatrixLight, mvMatrixLight, mvpMatrixLight);
 	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
 	
+	
+	
+	gl.useProgram(shaderProgram);
+	setup_vbo();
 	
 	gl.viewport(0, 0, canvas.width, canvas.height, mvpMatrixLight);
 	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -609,7 +684,7 @@ function drawScene(now)
 	gl.clearColor(1.,1.,1.,1.);
 	gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 	
-	set_uniforms(now, perspectiveMatrix, mvMatrix, mvpMatrixLight);
+	set_uniforms(now, shaderProgram, perspectiveMatrix, mvMatrix, mvpMatrixLight);
 	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
 }
 
@@ -624,33 +699,33 @@ function setup_vbo()
 	gl.vertexAttribPointer(vRotationAttr, 4, gl.FLOAT, false, data_width*4, 15*4);
 }
 
-function set_uniforms(now, perspectiveMatrix, mvMatrix, light_mvpMatrix)
+function set_uniforms(now, prog, perspectiveMatrix, mvMatrix, light_mvpMatrix)
 {
-	var pUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+	var pUniform = gl.getUniformLocation(prog, "uPMatrix");
 	gl.uniformMatrix4fv(pUniform, false, perspectiveMatrix);
 	
-	var mvUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+	var mvUniform = gl.getUniformLocation(prog, "uMVMatrix");
 	gl.uniformMatrix4fv(mvUniform, false, mvMatrix);
 
-	var lmvpUniform = gl.getUniformLocation(shaderProgram, "uLightMVPMatrix");
+	var lmvpUniform = gl.getUniformLocation(prog, "uLightMVPMatrix");
 	gl.uniformMatrix4fv(lmvpUniform, false, light_mvpMatrix);
 
-	var spikeUniform = gl.getUniformLocation(shaderProgram, "spike");
+	var spikeUniform = gl.getUniformLocation(prog, "spike");
 	gl.uniform1f(spikeUniform, curr_spike*0.5);
 
-	var spikeParam1Uniform = gl.getUniformLocation(shaderProgram, "spikeparam1");
+	var spikeParam1Uniform = gl.getUniformLocation(prog, "spikeparam1");
 	gl.uniform1f(spikeParam1Uniform, scroll_y + 0.3*scroll_x*Math.sin(now*3.1415/200) * Math.pow ( Math.sin(now*3.1415/2000), 5)  );
 
-	var spikeParam2Uniform = gl.getUniformLocation(shaderProgram, "spikeparam2");
+	var spikeParam2Uniform = gl.getUniformLocation(prog, "spikeparam2");
 	gl.uniform1f(spikeParam2Uniform, scroll_x);
 
-	var colormodeUniform = gl.getUniformLocation(shaderProgram, "colormode");
+	var colormodeUniform = gl.getUniformLocation(prog, "colormode");
 	gl.uniform1i(colormodeUniform, colormode);
 	
-	var etimeUniform = gl.getUniformLocation(shaderProgram, "explosion_time");
+	var etimeUniform = gl.getUniformLocation(prog, "explosion_time");
 	gl.uniform1f(etimeUniform, Math.max(0.,(now-explosion_time)/1000.));
 	
-	var stimeUniform = gl.getUniformLocation(shaderProgram, "spawn_time");
+	var stimeUniform = gl.getUniformLocation(prog, "spawn_time");
 	gl.uniform1f(stimeUniform, Math.max(0.,(now-spawn_time)/1000.));
 	
 	gl.activeTexture(gl.TEXTURE0);
