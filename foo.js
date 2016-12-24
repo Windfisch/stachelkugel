@@ -35,8 +35,8 @@ var scroll_y_raw=1000;
 var doShadows = false;
 var depthTextureExt;
 var depthTexture;
-var shadowsize_x = 1024;
-var shadowsize_y = 1024;
+var shadowsize_x = 512;
+var shadowsize_y = 512;
 var framebuffer_shadow = null;
 
 
