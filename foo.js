@@ -90,7 +90,7 @@ function start()
 	}
 
 	
-	depthTextureExt = gl.getExtension("WEBKIT_WEBGL_depth_texture"); // Or browser-appropriate prefix
+	depthTextureExt = gl.getExtension("WEBGL_depth_texture") || gl.getExtension("MOZ_WEBGL_depth_texture") || gl.getExtension("WEBKIT_WEBGL_depth_texture"); // Or browser-appropriate prefix
 	if(!depthTextureExt)
 	{
 		alert("no depth texture extension");
