@@ -71,7 +71,10 @@
 			//gl_FragColor = vec4(vec3(l_depth), 1);
 			//gl_FragColor = vec4(vec3(l_dist), 1);
 
-			if (l_depth < l_dist-0.001)
+			float bias = 0.01 * tan(acos(dot(n,light_dir)));
+			bias = clamp(bias,0.0,0.01);
+
+			if (l_depth < l_dist-bias)
 			{
 				dif=dif*0.3;
 				spe=vec3(0);
