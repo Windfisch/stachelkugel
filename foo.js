@@ -93,8 +93,8 @@ function start()
 		return;
 	}
 
-	doShadows = true;
-
+	doShadows=true;
+	
 	depthTextureExt = gl.getExtension("WEBGL_depth_texture") || gl.getExtension("MOZ_WEBGL_depth_texture") || gl.getExtension("WEBKIT_WEBGL_depth_texture"); // Or browser-appropriate prefix
 	if(!depthTextureExt)
 	{
@@ -654,27 +654,29 @@ function drawScene(now)
 	var mvpMatrixLight = mat4.clone(perspectiveMatrixLight);
 	mat4.mul(mvpMatrixLight, mvpMatrixLight, mvMatrixLight);
 
-	gl.useProgram(depthToColorShaderProgram);
-	setup_vbo();
-	
-	gl.viewport(0, 0, shadowsize_x, shadowsize_y);
-	gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer_shadow);
-	if (haveDepthTexture)
+	if (doShadows)
 	{
-		gl.colorMask(false,false,false,false);
-		gl.clear(gl.DEPTH_BUFFER_BIT);
+		gl.useProgram(depthToColorShaderProgram);
+		setup_vbo();
+		
+		gl.viewport(0, 0, shadowsize_x, shadowsize_y);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer_shadow);
+		if (haveDepthTexture)
+		{
+			gl.colorMask(false,false,false,false);
+			gl.clear(gl.DEPTH_BUFFER_BIT);
+		}
+		else
+		{
+			gl.colorMask(true,true,true,true);
+			gl.clearColor(1,1,1,0);
+			gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
+		}
+		gl.enable(gl.DEPTH_TEST);
+		
+		set_uniforms(now, depthToColorShaderProgram, perspectiveMatrixLight, mvMatrixLight, mvpMatrixLight);
+		gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
 	}
-	else
-	{
-		gl.colorMask(true,true,true,true);
-		gl.clearColor(1,1,1,0);
-		gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
-	}
-	gl.enable(gl.DEPTH_TEST);
-	
-	set_uniforms(now, depthToColorShaderProgram, perspectiveMatrixLight, mvMatrixLight, mvpMatrixLight);
-	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
-	
 	
 	
 	gl.useProgram(shaderProgram);
