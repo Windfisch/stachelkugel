@@ -52,6 +52,8 @@
 	</script>
 
 	<script id="shader-fs" type="x-shader/x-fragment">
+		// const bool doShadow; // gets prepended in the javascript
+		// const bool haveDepthTextureExtension; // same
 		precision mediump float;
 		varying vec3 color;
 		varying vec3 normal;
@@ -80,39 +82,41 @@
 			spe=max(spe,vec3(0));
 
 
-
-			vec3 light_glPos_dehom = light_gl_Position.xyz / light_gl_Position.w;
-
-			vec2 texcoord = light_glPos_dehom.xy / 2. + vec2(0.5,0.5);
-			float l_dist = light_glPos_dehom.z;
-			
-			float l_depth = -1.+2.* dot(vec3(1.,1./255.,1./255./256.), texture2D(depth_map, texcoord).rgb);
-
-			//gl_FragColor = vec4(vec3(l_depth), 1);
-			//gl_FragColor = vec4(vec3(l_dist), 1);
-
-			float bias = 0.01 * tan(acos(dot(n,light_dir)));
-			bias = clamp(bias,0.0,0.01);
-
-			if (l_depth < l_dist-bias)
+			if (doShadow)
 			{
-				dif=dif*0.3;
-				spe=vec3(0);
+				vec3 light_glPos_dehom = light_gl_Position.xyz / light_gl_Position.w;
+
+				vec2 texcoord = light_glPos_dehom.xy / 2. + vec2(0.5,0.5);
+				float l_dist = light_glPos_dehom.z;
+				
+				float l_depth;
+				if (haveDepthTextureExtension) // no rgb unpacking hack needed
+					l_depth = -1.+2.*texture2D(depth_map, texcoord).r;
+				else // need to do rgb unpacking
+					l_depth = -1.+2.* dot(vec3(1.,1./255.,1./255./256.), texture2D(depth_map, texcoord).rgb);
+
+				float bias = 0.01 * tan(acos(dot(n,light_dir)));
+				bias = clamp(bias,0.0,0.01);
+
+				if (l_depth < l_dist-bias)
+				{
+					dif=dif*0.3;
+					spe=vec3(0);
+				}
 			}
 			
 			
 			gl_FragColor = vec4(amb+dif+spe,1);
-			//gl_FragColor = vec4(vec3(0.5),1);
 		}
 	</script>
 
 <script id="shader-vs" type="x-shader/x-vertex">
 precision mediump float;
   attribute vec3 aVertexPosition;
-  attribute vec3 aVertexColor;
-  attribute vec3 aVertexPosition2;
-  attribute vec3 aVertexPosition3;
+  attribute vec3 aVertexPosition2; // needed to emulate the missing
+  attribute vec3 aVertexPosition3; // geometry shader
   attribute vec3 aVertexLevels;
+  attribute vec3 aVertexColor;
   attribute vec4 aFaceRotation;
 
   uniform mat4 uMVMatrix;
@@ -124,10 +128,11 @@ precision mediump float;
   uniform int colormode;
   uniform float explosion_time;
   uniform float spawn_time;
+  
   varying vec3 color;
   varying vec3 normal;
   varying vec4 pos;
-  varying vec4 light_gl_Position;
+  varying vec4 light_gl_Position; // in the shadowing pass, this is unused. in the draw pass, this is set to what gl_Position would be in the shadow pass for that fragment
   
   
 mat4 rotationMatrix(vec3 axis, float angle)

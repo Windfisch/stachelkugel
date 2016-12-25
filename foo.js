@@ -93,13 +93,12 @@ function start()
 		return;
 	}
 
-	
+	doShadows = true;
+
 	depthTextureExt = gl.getExtension("WEBGL_depth_texture") || gl.getExtension("MOZ_WEBGL_depth_texture") || gl.getExtension("WEBKIT_WEBGL_depth_texture"); // Or browser-appropriate prefix
-	depthTextureExt = null; //TODO
 	if(!depthTextureExt)
 	{
-		alert("no depth texture extension");
-		doShadows = true;
+		console.log("no depth texture extension, falling back to rgb unpacking");
 		haveDepthTexture = false;
 
 		framebuffer_shadow = gl.createFramebuffer();
@@ -124,8 +123,7 @@ function start()
 	}
 	else
 	{
-		alert("woop woop");
-		haveDepthTexture = true; // FIXME
+		haveDepthTexture = true;
 	
 	// Create the depth texture
 		depthTexture = gl.createTexture();
@@ -140,7 +138,6 @@ function start()
 		gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer_shadow);
 		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTexture, 0);
 		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-		doShadows = true;
 	}
 
 
@@ -161,7 +158,7 @@ function start()
 
 }
 
-function getShader(gl, id) {
+function getShader(gl, id, prepend) {
 	var shaderScript = document.getElementById(id);
 
 	if (!shaderScript) {
@@ -188,6 +185,9 @@ function getShader(gl, id) {
 	} else {
 		return null;  // Unbekannter Shadertyp
 	}
+
+	if (prepend !== undefined)
+		theSource = prepend + theSource;
 	gl.shaderSource(shader, theSource);
 
 	// Kompiliere das Shaderprogramm
@@ -265,8 +265,11 @@ function initDepthToColorShader()
 
 function initDrawShader()
 {
-	var fragmentShader = getShader(gl, "shader-fs");
+	var fsconfig = 'const bool doShadow = '+doShadows+';\nconst bool haveDepthTextureExtension = '+haveDepthTexture+";\n";
+	
+	var fragmentShader = getShader(gl, "shader-fs", fsconfig);
 	var vertexShader = getShader(gl, "shader-vs");
+
 
 	shaderProgram = gl.createProgram();
 	gl.attachShader(shaderProgram, vertexShader);
