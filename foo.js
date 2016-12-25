@@ -1,17 +1,34 @@
 var gl;
 var vbo;
 
-// webGL attribute handles
-var vPosAttr;
-var vColorAttr;
-var vPos2Attr;
-var vPos3Attr;
-var vLevelAttr;
-var vRotationAttr;
-var vertices;
+var shaders = {
+	draw: {
+		program: null,
+		attrs: {},
+		uniforms: {}
+	},
 
-var shaderProgram;
-var depthToColorShaderProgram;
+	drawShader_withshadow: {
+		program: null,
+		attrs: {},
+		uniforms: {}
+	},
+
+	depthToRGB: {
+		program: null,
+		attrs: {},
+		uniforms: {}
+	},
+
+	debug: {
+		program: null,
+		attrs: {},
+		uniforms: {}
+	}
+};
+
+// webGL attribute handles
+var vertices;
 
 // explosion and respawn counters
 var EXPLODE_NEVER = 99999999;
@@ -155,7 +172,6 @@ function start()
 
 	//animation_frame(0);
 	requestAnimationFrame(animation_frame);
-
 }
 
 function getShader(gl, id, prepend) {
@@ -188,6 +204,7 @@ function getShader(gl, id, prepend) {
 
 	if (prepend !== undefined)
 		theSource = prepend + theSource;
+	
 	gl.shaderSource(shader, theSource);
 
 	// Kompiliere das Shaderprogramm
@@ -206,100 +223,62 @@ function getShader(gl, id, prepend) {
 
 function initShaders()
 {
-	initDrawShader();
-	initDepthToColorShader();
-	initDebugShader();
-}
-
-function initDebugShader()
-{
-	var fragmentShader = getShader(gl, "shader-debugfs");
-	var vertexShader = getShader(gl, "shader-debugvs");
-
-	debugShaderProgram = gl.createProgram();
-	gl.attachShader(debugShaderProgram, vertexShader);
-	gl.attachShader(debugShaderProgram, fragmentShader);
-	gl.linkProgram(debugShaderProgram);
-
-	gl.useProgram(debugShaderProgram);
-
-	vDebugPointAttr = gl.getAttribLocation(debugShaderProgram, "point");
-	gl.enableVertexAttribArray(debugShaderProgram, vDebugPointAttr);
-
-	gl.useProgram(null);
-}
-
-function initDepthToColorShader()
-{
-	var fragmentShader = getShader(gl, "shader-fs-depthtocolor");
-	var vertexShader = getShader(gl, "shader-vs");
-
-	depthToColorShaderProgram = gl.createProgram();
-	gl.attachShader(depthToColorShaderProgram, vertexShader);
-	gl.attachShader(depthToColorShaderProgram, fragmentShader);
-	gl.linkProgram(depthToColorShaderProgram);
-
-	if (!gl.getProgramParameter(depthToColorShaderProgram, gl.LINK_STATUS))
-	{
-		alert("failed to link shader program" + gl.getProgramInfoLog(depthToColorShaderProgram));
-	}
-
-	gl.useProgram(depthToColorShaderProgram);
-
-	vPosAttr = gl.getAttribLocation(depthToColorShaderProgram, "aVertexPosition");
-	gl.enableVertexAttribArray(vPosAttr);
-	
-	vPos2Attr = gl.getAttribLocation(depthToColorShaderProgram, "aVertexPosition2");
-	gl.enableVertexAttribArray(vPos2Attr);
-	vPos3Attr = gl.getAttribLocation(depthToColorShaderProgram, "aVertexPosition3");
-	gl.enableVertexAttribArray(vPos3Attr);
-	
-	vLevelAttr = gl.getAttribLocation(depthToColorShaderProgram, "aVertexLevels");
-	gl.enableVertexAttribArray(vLevelAttr);
-	
-	vRotationAttr = gl.getAttribLocation(depthToColorShaderProgram, "aFaceRotation");
-	gl.enableVertexAttribArray(vRotationAttr);
-	
-	gl.useProgram(null);
-}
-
-function initDrawShader()
-{
 	var fsconfig = 'const bool doShadow = '+doShadows+';\nconst bool haveDepthTextureExtension = '+haveDepthTexture+";\n";
+	initShader(shaders.draw, "shader-vs", "shader-fs",
+		["aVertexPosition", "aVertexPosition2", "aVertexPosition3", "aVertexLevels", "aFaceRotation", "aVertexColor"],
+		["uPMatrix", "uMVMatrix", "uLightMVPMatrix", "spike", "spikeparam1", "spikeparam2", "colormode", "explosion_time", "spawn_time", "depth_map"],
+		fsconfig);
+
+	initShader(shaders.depthToRGB, "shader-vs", "shader-fs-depthtocolor",
+		["aVertexPosition", "aVertexPosition2", "aVertexPosition3", "aVertexLevels", "aFaceRotation"],
+		["uPMatrix", "uMVMatrix", "uLightMVPMatrix", "spike", "spikeparam1", "spikeparam2", "explosion_time", "spawn_time"]);
 	
-	var fragmentShader = getShader(gl, "shader-fs", fsconfig);
-	var vertexShader = getShader(gl, "shader-vs");
+	initShader(shaders.debug, "shader-debugvs", "shader-debugfs",
+		["point"],
+		[]);
+}
 
+function initShader(shader, vsname, fsname, attrs, uniforms, fsconfig)
+{
+	console.log("initializing "+fsname+"/"+vsname+" with config "+fsconfig);
+	var fragmentShader = getShader(gl, fsname, fsconfig);
+	var vertexShader = getShader(gl, vsname);
 
-	shaderProgram = gl.createProgram();
-	gl.attachShader(shaderProgram, vertexShader);
-	gl.attachShader(shaderProgram, fragmentShader);
-	gl.linkProgram(shaderProgram);
+	shader.program = gl.createProgram();
+	gl.attachShader(shader.program, vertexShader);
+	gl.attachShader(shader.program, fragmentShader);
+	gl.linkProgram(shader.program);
 
-	if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS))
+	gl.useProgram(shader.program);
+
+	for (var i=0; i<attrs.length; i++)
 	{
-		alert("failed to link shader program" + gl.getProgramInfoLog(shaderProgram));
+		var handle = gl.getAttribLocation(shader.program, attrs[i]);
+		if (handle>=0)
+		{
+			gl.enableVertexAttribArray(handle);
+			shader.attrs[attrs[i]] = handle;
+		}
+		else
+			console.log("could not find attribute '"+attrs[i]+"'");
 	}
 
-	gl.useProgram(shaderProgram);
+	for (var i=0; i<uniforms.length; i++)
+	{
+		var pUniform = gl.getUniformLocation(shader.program, "uPMatrix");
+		if (pUniform>=0)
+		{
 
-	vPosAttr = gl.getAttribLocation(shaderProgram, "aVertexPosition");
-	gl.enableVertexAttribArray(vPosAttr);
-	
-	vColorAttr = gl.getAttribLocation(shaderProgram, "aVertexColor");
-	gl.enableVertexAttribArray(vColorAttr);
-	
-	vPos2Attr = gl.getAttribLocation(shaderProgram, "aVertexPosition2");
-	gl.enableVertexAttribArray(vPos2Attr);
-	vPos3Attr = gl.getAttribLocation(shaderProgram, "aVertexPosition3");
-	gl.enableVertexAttribArray(vPos3Attr);
-	
-	vLevelAttr = gl.getAttribLocation(shaderProgram, "aVertexLevels");
-	gl.enableVertexAttribArray(vLevelAttr);
-	
-	vRotationAttr = gl.getAttribLocation(shaderProgram, "aFaceRotation");
-	gl.enableVertexAttribArray(vRotationAttr);
-	
+		}
+		else
+			console.log("HASS");
+		var handle = gl.getUniformLocation(shader.program, uniforms[i]);
+		if (handle>=0)
+			shader.uniforms[uniforms[i]]=handle;
+		else
+			console.log("could not find uniform '"+uniforms[i]+"'");
+	}
+
 	gl.useProgram(null);
 }
 
@@ -514,7 +493,7 @@ function cosfade(x, a,b)
 
 function drawDebug(now)
 {
-	gl.useProgram(debugShaderProgram);
+	gl.useProgram(shaders.debug.program);
 	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 	
 	gl.clearColor(1.,1.,0.,1.);
@@ -525,7 +504,7 @@ function drawDebug(now)
 	
 	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, depthTexture);
-	gl.uniform1i(gl.getUniformLocation(debugShaderProgram, "tex"), 0);
+	gl.uniform1i(gl.getUniformLocation(shaders.debug.program, "tex"), 0);
 
 	gl.bindBuffer(gl.ARRAY_BUFFER, debug_vbo);
 	gl.vertexAttribPointer(vDebugPointAttr, 2, gl.FLOAT, false, 0,0);
@@ -656,8 +635,8 @@ function drawScene(now)
 
 	if (doShadows)
 	{
-		gl.useProgram(depthToColorShaderProgram);
-		setup_vbo();
+		gl.useProgram(shaders.depthToRGB.program);
+		setup_vbo(shaders.depthToRGB);
 		
 		gl.viewport(0, 0, shadowsize_x, shadowsize_y);
 		gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer_shadow);
@@ -674,13 +653,13 @@ function drawScene(now)
 		}
 		gl.enable(gl.DEPTH_TEST);
 		
-		set_uniforms(now, depthToColorShaderProgram, perspectiveMatrixLight, mvMatrixLight, mvpMatrixLight);
+		set_uniforms(now, shaders.depthToRGB.program, perspectiveMatrixLight, mvMatrixLight, mvpMatrixLight);
 		gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
 	}
 	
 	
-	gl.useProgram(shaderProgram);
-	setup_vbo();
+	gl.useProgram(shaders.draw.program);
+	setup_vbo(shaders.draw);
 	
 	gl.viewport(0, 0, canvas.width, canvas.height, mvpMatrixLight);
 	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -689,19 +668,31 @@ function drawScene(now)
 	gl.clearColor(1.,1.,1.,1.);
 	gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 	
-	set_uniforms(now, shaderProgram, perspectiveMatrix, mvMatrix, mvpMatrixLight);
+	set_uniforms(now, shaders.draw.program, perspectiveMatrix, mvMatrix, mvpMatrixLight);
 	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
 }
 
-function setup_vbo()
+
+/* binds the vbo and sets the vertexAttribPointers */
+function setup_vbo(shader)
 {
 	gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-	gl.vertexAttribPointer(vPosAttr, 3, gl.FLOAT, false, data_width*4, 0*4);
-	gl.vertexAttribPointer(vColorAttr, 3, gl.FLOAT, false, data_width*4, 3*4);
-	gl.vertexAttribPointer(vPos2Attr, 3, gl.FLOAT, false, data_width*4, 6*4);
-	gl.vertexAttribPointer(vPos3Attr, 3, gl.FLOAT, false, data_width*4, 9*4);
-	gl.vertexAttribPointer(vLevelAttr, 3, gl.FLOAT, false, data_width*4, 12*4);
-	gl.vertexAttribPointer(vRotationAttr, 4, gl.FLOAT, false, data_width*4, 15*4);
+	var data = [
+		["aVertexPosition",3],
+		["aVertexColor",3],
+		["aVertexPosition2",3],
+		["aVertexPosition3",3],
+		["aVertexLevels",3],
+		["aFaceRotation",4]
+	];
+
+	var offset = 0;
+	for (var i=0; i<data.length; i++)
+	{
+		console.log (shader.attrs[data[i][0]]);
+		gl.vertexAttribPointer(shader.attrs[data[i][0]], data[i][1], gl.FLOAT, false, data_width*4, offset*4);
+		offset = offset + data[i][1];
+	}
 }
 
 function set_uniforms(now, prog, perspectiveMatrix, mvMatrix, light_mvpMatrix)
@@ -735,7 +726,7 @@ function set_uniforms(now, prog, perspectiveMatrix, mvMatrix, light_mvpMatrix)
 	
 	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, depthTexture);
-	gl.uniform1i(gl.getUniformLocation(debugShaderProgram, "depth_map"), 0);
+	gl.uniform1i(gl.getUniformLocation(shaders.debug.program, "depth_map"), 0);
 
 }
 
