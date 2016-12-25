@@ -7,14 +7,62 @@
 	<script type="text/javascript" src="./gl-matrix.js"></script>
 	<script type="text/javascript" src="./menu.js"></script>
 	<script type="text/javascript" src="./foo.js"></script>
-    
+   
+<script id="shader-debugvs" type="x-shader/x-vertex">
+	precision mediump float;
+	attribute vec2 point;
+	varying vec2 coord;
+
+	void main(void)
+	{
+		coord = vec2(0.5,0.5) + point/2.;
+		gl_Position = vec4(point,1,1);
+	}
+</script>
+
+<script id="shader-debugfs" type="x-shader/x-fragment">
+	precision mediump float;
+	varying vec2 coord;
+	uniform sampler2D tex;
+
+	void main(void) {
+		gl_FragColor = vec4(   (texture2D(tex, coord).rgb)  , 1);
+		//gl_FragColor = vec4(coord,0,1);
+	}
+</script>
+
+	<script id="shader-fs-depthtocolor" type="x-shader/x-fragment">
+		precision highp float;
+		varying vec4 pos;
+		void main(void)
+		{
+			float val = 256.*256.*256.*clamp(gl_FragCoord.z, 0.0, 0.99999999);
+
+			float r = floor(val / (256.*256.));
+			val -= r*256.*256.;
+
+			float g = floor(val / 256.);
+			val -= g*256.;
+
+			float b = floor(val);
+			
+			gl_FragColor = vec4(vec3(float(r)/255.,float(g)/255.,float(b)/255.),1);
+			//gl_FragColor = vec4(vec3(gl_FragCoord.z,0,0),1);
+		}
+	</script>
+
 	<script id="shader-fs" type="x-shader/x-fragment">
+		// const bool doShadow; // gets prepended in the javascript
+		// const bool haveDepthTextureExtension; // same
 		precision mediump float;
 		varying vec3 color;
 		varying vec3 normal;
 		varying vec4 pos;
+		varying vec4 light_gl_Position;
+		uniform sampler2D depth_map;
 
-		const vec3 light_pos = vec3(10,5,-10);
+		//const vec3 light_pos = vec3(0,0,-20) -  vec3(0.25,0,-7.458);
+		const vec3 light_pos = vec3(0,0,-20) - vec3(8.04,0,-10.96);
 
 		void main(void) {
 			vec3 light_dir = normalize(light_pos - pos.xyz/pos.w);
@@ -34,6 +82,30 @@
 			spe=max(spe,vec3(0));
 
 
+			if (doShadow)
+			{
+				vec3 light_glPos_dehom = light_gl_Position.xyz / light_gl_Position.w;
+
+				vec2 texcoord = light_glPos_dehom.xy / 2. + vec2(0.5,0.5);
+				float l_dist = light_glPos_dehom.z;
+				
+				float l_depth;
+				if (haveDepthTextureExtension) // no rgb unpacking hack needed
+					l_depth = -1.+2.*texture2D(depth_map, texcoord).r;
+				else // need to do rgb unpacking
+					l_depth = -1.+2.* dot(vec3(1.,1./255.,1./255./256.), texture2D(depth_map, texcoord).rgb);
+
+				float bias = 0.01 * tan(acos(dot(n,light_dir)));
+				bias = clamp(bias,0.0,0.01);
+
+				if (l_depth < l_dist-bias)
+				{
+					dif=dif*0.3;
+					spe=vec3(0);
+				}
+			}
+			
+			
 			gl_FragColor = vec4(amb+dif+spe,1);
 		}
 	</script>
@@ -41,13 +113,14 @@
 <script id="shader-vs" type="x-shader/x-vertex">
 precision mediump float;
   attribute vec3 aVertexPosition;
-  attribute vec3 aVertexColor;
-  attribute vec3 aVertexPosition2;
-  attribute vec3 aVertexPosition3;
+  attribute vec3 aVertexPosition2; // needed to emulate the missing
+  attribute vec3 aVertexPosition3; // geometry shader
   attribute vec3 aVertexLevels;
+  attribute vec3 aVertexColor;
   attribute vec4 aFaceRotation;
 
   uniform mat4 uMVMatrix;
+  uniform mat4 uLightMVPMatrix;
   uniform mat4 uPMatrix;
   uniform float spike;
   uniform float spikeparam1;
@@ -55,9 +128,11 @@ precision mediump float;
   uniform int colormode;
   uniform float explosion_time;
   uniform float spawn_time;
+  
   varying vec3 color;
   varying vec3 normal;
   varying vec4 pos;
+  varying vec4 light_gl_Position; // in the shadowing pass, this is unused. in the draw pass, this is set to what gl_Position would be in the shadow pass for that fragment
   
   
 mat4 rotationMatrix(vec3 axis, float angle)
@@ -132,7 +207,7 @@ mat4 rotationMatrix(vec3 axis, float angle)
 
 	vec3 mid = (pos + pos2 + pos3).xyz / 3.;
 	
-
+	light_gl_Position = uLightMVPMatrix * mpos1;
 
 
 //normal=normalize(mat3(uMVMatrix)*aVertexNormal);
@@ -172,6 +247,12 @@ mat4 rotationMatrix(vec3 axis, float angle)
 		<label for="y_slider">Y: </label>
 		<input id="y_slider" type="range" min="0" max="1.0" step="0.05" oninput="handle_slider(this)"/>
 		<span id="y_slider_value"/>
+	</div>
+	<div class="menu_entry">
+		<label for="shadow_check">Shadows: </label>
+		<form id="shadow_check">
+			<input type="checkbox" id="shadowbox" name="shadow" value="0" onclick="handle_shadow(this)" checked="checked"/>
+		</form>
 	</div>
 	<div class="menu_entry">
 		<a href="https://github.com/Windfisch/stachelkugel">Source @ GitHub</a>
