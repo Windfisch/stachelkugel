@@ -3,24 +3,28 @@ var vbo;
 
 var shaders = {
 	draw: {
+		name: "draw",
 		program: null,
 		attrs: {},
 		uniforms: {}
 	},
 
 	drawShader_withshadow: {
+		name: "draw(shadow)",
 		program: null,
 		attrs: {},
 		uniforms: {}
 	},
 
 	depthToRGB: {
+		name: "depthToRGB",
 		program: null,
 		attrs: {},
 		uniforms: {}
 	},
 
 	debug: {
+		name: "debug",
 		program: null,
 		attrs: {},
 		uniforms: {}
@@ -170,8 +174,8 @@ function start()
 	window.addEventListener("resize", resize, false);
 	resize();
 
-	//animation_frame(0);
-	requestAnimationFrame(animation_frame);
+	animation_frame(0);
+	//requestAnimationFrame(animation_frame);
 }
 
 function getShader(gl, id, prepend) {
@@ -231,11 +235,11 @@ function initShaders()
 
 	initShader(shaders.depthToRGB, "shader-vs", "shader-fs-depthtocolor",
 		["aVertexPosition", "aVertexPosition2", "aVertexPosition3", "aVertexLevels", "aFaceRotation"],
-		["uPMatrix", "uMVMatrix", "uLightMVPMatrix", "spike", "spikeparam1", "spikeparam2", "explosion_time", "spawn_time"]);
+		["uPMatrix", "uMVMatrix", "spike", "spikeparam1", "spikeparam2", "explosion_time", "spawn_time"]);
 	
 	initShader(shaders.debug, "shader-debugvs", "shader-debugfs",
 		["point"],
-		[]);
+		["tex"]);
 }
 
 function initShader(shader, vsname, fsname, attrs, uniforms, fsconfig)
@@ -255,28 +259,18 @@ function initShader(shader, vsname, fsname, attrs, uniforms, fsconfig)
 	{
 		var handle = gl.getAttribLocation(shader.program, attrs[i]);
 		if (handle>=0)
-		{
-			gl.enableVertexAttribArray(handle);
 			shader.attrs[attrs[i]] = handle;
-		}
 		else
 			console.log("could not find attribute '"+attrs[i]+"'");
 	}
 
 	for (var i=0; i<uniforms.length; i++)
 	{
-		var pUniform = gl.getUniformLocation(shader.program, "uPMatrix");
-		if (pUniform>=0)
-		{
-
-		}
-		else
-			console.log("HASS");
 		var handle = gl.getUniformLocation(shader.program, uniforms[i]);
-		if (handle>=0)
+		if (handle != null)
 			shader.uniforms[uniforms[i]]=handle;
 		else
-			console.log("could not find uniform '"+uniforms[i]+"'");
+			console.log("could not find uniform '"+uniforms[i]+"' (is: "+handle+")");
 	}
 
 	gl.useProgram(null);
@@ -498,7 +492,7 @@ function drawDebug(now)
 	
 	gl.clearColor(1.,1.,0.,1.);
 	gl.disable(gl.DEPTH_TEST);
-	gl.clear(gl.DEPTH_BUFFER_BIT)
+	gl.clear(gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT)
 	
 	gl.viewport(0,0, canvas.width, canvas.height);
 	
@@ -507,10 +501,13 @@ function drawDebug(now)
 	gl.uniform1i(gl.getUniformLocation(shaders.debug.program, "tex"), 0);
 
 	gl.bindBuffer(gl.ARRAY_BUFFER, debug_vbo);
-	gl.vertexAttribPointer(vDebugPointAttr, 2, gl.FLOAT, false, 0,0);
+	gl.enableVertexAttribArray(shaders.debug.attrs['point']);
+	gl.vertexAttribPointer(shaders.debug.attrs['point'], 2, gl.FLOAT, false, 0,0);
 
 	gl.drawArrays(gl.TRIANGLES, 0, 6);
 	gl.enable(gl.DEPTH_TEST);
+	gl.disableVertexAttribArray(shaders.debug.attrs['point']);
+	gl.useProgram(null);
 }
 
 function log_fps(now)
@@ -537,7 +534,7 @@ function animation_frame(now)
 	calc_stuff(now);
 	drawScene(now);
 	//drawDebug(now);
-	log_fps(now);
+	//log_fps(now);
 
 	requestAnimationFrame(animation_frame);
 }
@@ -546,12 +543,8 @@ function handle_input(now)
 {
 	if (clicked == true)
 	{
-		console.log("clicked");
 		if (explosion_time == EXPLODE_NEVER)
-		{
-			console.log("click accepted");
 			click_events.push([now, curr_spikespeed]);
-		}
 		clicked=false;
 	}
 }
@@ -655,6 +648,9 @@ function drawScene(now)
 		
 		set_uniforms(now, shaders.depthToRGB.program, perspectiveMatrixLight, mvMatrixLight, mvpMatrixLight);
 		gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
+
+		cleanup_vbo(shaders.depthToRGB);
+		gl.useProgram(null);
 	}
 	
 	
@@ -670,6 +666,9 @@ function drawScene(now)
 	
 	set_uniforms(now, shaders.draw.program, perspectiveMatrix, mvMatrix, mvpMatrixLight);
 	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
+
+	cleanup_vbo(shaders.draw);
+	gl.useProgram(null);
 }
 
 
@@ -689,10 +688,21 @@ function setup_vbo(shader)
 	var offset = 0;
 	for (var i=0; i<data.length; i++)
 	{
-		console.log (shader.attrs[data[i][0]]);
-		gl.vertexAttribPointer(shader.attrs[data[i][0]], data[i][1], gl.FLOAT, false, data_width*4, offset*4);
+		if (shader.attrs[data[i][0]] != undefined)
+		{
+			gl.enableVertexAttribArray(shader.attrs[data[i][0]]);
+			gl.vertexAttribPointer(shader.attrs[data[i][0]], data[i][1], gl.FLOAT, false, data_width*4, offset*4);
+		}
 		offset = offset + data[i][1];
 	}
+}
+
+function cleanup_vbo(shader)
+{
+	for (attr in shader.attrs)
+		gl.disableVertexAttribArray(shader.attrs[attr]);
+	
+	gl.bindBuffer(gl.ARRAY_BUFFER, null);
 }
 
 function set_uniforms(now, prog, perspectiveMatrix, mvMatrix, light_mvpMatrix)
@@ -727,7 +737,6 @@ function set_uniforms(now, prog, perspectiveMatrix, mvMatrix, light_mvpMatrix)
 	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, depthTexture);
 	gl.uniform1i(gl.getUniformLocation(shaders.debug.program, "depth_map"), 0);
-
 }
 
 function setScrollY(value){
