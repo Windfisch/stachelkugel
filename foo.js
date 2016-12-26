@@ -9,8 +9,8 @@ var shaders = {
 		uniforms: {}
 	},
 
-	drawShader_withshadow: {
-		name: "draw(shadow)",
+	draw_noshadow: {
+		name: "draw(noshadow)",
 		program: null,
 		attrs: {},
 		uniforms: {}
@@ -60,8 +60,8 @@ var doShadows = false;
 var haveDepthTexture = false;
 var depthTextureExt;
 var depthTexture;
-var shadowsize_x = 512;
-var shadowsize_y = 512;
+var shadowsize_x = 512*2;
+var shadowsize_y = 512*2;
 var framebuffer_shadow = null;
 
 
@@ -117,6 +117,7 @@ function start()
 	doShadows=true;
 	
 	depthTextureExt = gl.getExtension("WEBGL_depth_texture") || gl.getExtension("MOZ_WEBGL_depth_texture") || gl.getExtension("WEBKIT_WEBGL_depth_texture"); // Or browser-appropriate prefix
+	//depthTextureExt=null; // FIXME
 	if(!depthTextureExt)
 	{
 		console.log("no depth texture extension, falling back to rgb unpacking");
@@ -230,7 +231,7 @@ function initShaders()
 	var fsconfig = 'const bool doShadow = '+doShadows+';\nconst bool haveDepthTextureExtension = '+haveDepthTexture+";\n";
 	initShader(shaders.draw, "shader-vs", "shader-fs",
 		["aVertexPosition", "aVertexPosition2", "aVertexPosition3", "aVertexLevels", "aFaceRotation", "aVertexColor"],
-		["uPMatrix", "uMVMatrix", "uLightMVPMatrix", "spike", "spikeparam1", "spikeparam2", "colormode", "explosion_time", "spawn_time", "depth_map"],
+		["uPMatrix", "uMVMatrix", "uLightMVPMatrix", "spike", "spikeparam1", "spikeparam2", "colormode", "explosion_time", "spawn_time", "depth_map", "light_pos"],
 		fsconfig);
 
 	initShader(shaders.depthToRGB, "shader-vs", "shader-fs-depthtocolor",
@@ -603,25 +604,35 @@ function calc_stuff(now)
 
 function drawScene(now)
 {
+	const camPos = [0,0,20];
+	const lightPos = [-8,15,20];
+
 	var perspectiveMatrix = mat4.create();
 	mat4.perspective(perspectiveMatrix, 3.1415/14, canvas.width/canvas.height, 10, 40.0);
 
+	var lightDist = vec3.len(lightPos);
 	var perspectiveMatrixLight = mat4.create();
-	mat4.perspective(perspectiveMatrixLight, 3.1415/8, shadowsize_x/shadowsize_y, 3, 20.0);
+	mat4.perspective(perspectiveMatrixLight, 3.1415/16, shadowsize_x/shadowsize_y, lightDist-3, lightDist+3);
 
 	var angle = now * 3.1415 / 6000;
 	var axis = [Math.sin(now/10000) ,Math.cos(now/13000),-.1];
-	
+	var rotationMatrix = mat4.create();
+	mat4.fromRotation(rotationMatrix, angle, axis);
+
+	var cameraMatrix = mat4.create();
+	mat4.lookAt(cameraMatrix, camPos, [0,0,0], [0,1,0]);
+
+	var lightMatrix = mat4.create();
+	mat4.lookAt(lightMatrix, lightPos, [0,0,0], [0,1,0]);
+
+	var lightPosInCamSpace = vec3.create();
+	vec3.transformMat4(lightPosInCamSpace, lightPos, cameraMatrix);
+
 	var mvMatrix = mat4.create();
-	mat4.identity(mvMatrix);
-	mat4.translate(mvMatrix, mvMatrix, [0,0,-20]);
-	mat4.rotate(mvMatrix, mvMatrix, angle, axis);
+	mat4.mul(mvMatrix, cameraMatrix, rotationMatrix);
 
 	var mvMatrixLight = mat4.create();
-	mat4.identity(mvMatrixLight);
-	mat4.rotate(mvMatrixLight,mvMatrixLight, 0.4, [0,1,0]);
-	mat4.translate(mvMatrixLight, mvMatrixLight, [4.5,0,-10]);
-	mat4.rotate(mvMatrixLight, mvMatrixLight, angle, axis);
+	mat4.mul(mvMatrixLight, lightMatrix, rotationMatrix);
 
 	var mvpMatrixLight = mat4.clone(perspectiveMatrixLight);
 	mat4.mul(mvpMatrixLight, mvpMatrixLight, mvMatrixLight);
@@ -646,7 +657,7 @@ function drawScene(now)
 		}
 		gl.enable(gl.DEPTH_TEST);
 		
-		set_uniforms(now, shaders.depthToRGB.program, perspectiveMatrixLight, mvMatrixLight, mvpMatrixLight);
+		set_uniforms(now, shaders.depthToRGB.program, perspectiveMatrixLight, mvMatrixLight, mvpMatrixLight, lightPosInCamSpace);
 		gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
 
 		cleanup_vbo(shaders.depthToRGB);
@@ -664,7 +675,7 @@ function drawScene(now)
 	gl.clearColor(1.,1.,1.,1.);
 	gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 	
-	set_uniforms(now, shaders.draw.program, perspectiveMatrix, mvMatrix, mvpMatrixLight);
+	set_uniforms(now, shaders.draw.program, perspectiveMatrix, mvMatrix, mvpMatrixLight, lightPosInCamSpace);
 	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
 
 	cleanup_vbo(shaders.draw);
@@ -705,7 +716,7 @@ function cleanup_vbo(shader)
 	gl.bindBuffer(gl.ARRAY_BUFFER, null);
 }
 
-function set_uniforms(now, prog, perspectiveMatrix, mvMatrix, light_mvpMatrix)
+function set_uniforms(now, prog, perspectiveMatrix, mvMatrix, light_mvpMatrix, light_pos)
 {
 	var pUniform = gl.getUniformLocation(prog, "uPMatrix");
 	gl.uniformMatrix4fv(pUniform, false, perspectiveMatrix);
@@ -733,6 +744,8 @@ function set_uniforms(now, prog, perspectiveMatrix, mvMatrix, light_mvpMatrix)
 	
 	var stimeUniform = gl.getUniformLocation(prog, "spawn_time");
 	gl.uniform1f(stimeUniform, Math.max(0.,(now-spawn_time)/1000.));
+
+	gl.uniform3fv(gl.getUniformLocation(prog, "light_pos"), light_pos);
 	
 	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, depthTexture);

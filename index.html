@@ -60,14 +60,12 @@
 		varying vec4 pos;
 		varying vec4 light_gl_Position;
 		uniform sampler2D depth_map;
-
-		//const vec3 light_pos = vec3(0,0,-20) -  vec3(0.25,0,-7.458);
-		const vec3 light_pos = vec3(0,0,-20) - vec3(8.04,0,-10.96);
+		uniform vec3 light_pos;
 
 		void main(void) {
 			vec3 light_dir = normalize(light_pos - pos.xyz/pos.w);
 			vec3 n = normalize(normal);
-			vec3 v = normalize(light_pos - pos.xyz/pos.w);
+			vec3 v = normalize(-pos.xyz/pos.w);
 
 			vec3 r = 2.*dot(light_dir, n)*n - light_dir;
 
@@ -96,7 +94,7 @@
 					l_depth = -1.+2.* dot(vec3(1.,1./255.,1./255./256.), texture2D(depth_map, texcoord).rgb);
 
 				float bias = 0.01 * tan(acos(dot(n,light_dir)));
-				bias = clamp(bias,0.0,0.01);
+				bias = clamp(bias,0.0,0.1);
 
 				if (l_depth < l_dist-bias)
 				{
