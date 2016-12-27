@@ -226,13 +226,20 @@ function getShader(gl, id, prepend) {
 	return shader;
 }
 
-function initShaders()
+function initDrawShader(shader, doShadow)
 {
-	var fsconfig = 'const bool doShadow = '+doShadows+';\nconst bool haveDepthTextureExtension = '+haveDepthTexture+";\n";
-	initShader(shaders.draw, "shader-vs", "shader-fs",
+	var fsconfig = 'const bool doShadow = '+doShadow+';\nconst bool haveDepthTextureExtension = '+haveDepthTexture+";\n";
+
+	initShader(shader, "shader-vs", "shader-fs",
 		["aVertexPosition", "aVertexPosition2", "aVertexPosition3", "aVertexLevels", "aFaceRotation", "aVertexColor"],
 		["uPMatrix", "uMVMatrix", "uLightMVPMatrix", "spike", "spikeparam1", "spikeparam2", "colormode", "explosion_time", "spawn_time", "depth_map", "light_pos"],
 		fsconfig);
+}
+
+function initShaders()
+{
+	initDrawShader(shaders.draw, true);
+	initDrawShader(shaders.draw_noshadow, false);
 
 	initShader(shaders.depthToRGB, "shader-vs", "shader-fs-depthtocolor",
 		["aVertexPosition", "aVertexPosition2", "aVertexPosition3", "aVertexLevels", "aFaceRotation"],
@@ -663,10 +670,11 @@ function drawScene(now)
 		cleanup_vbo(shaders.depthToRGB);
 		gl.useProgram(null);
 	}
-	
-	
-	gl.useProgram(shaders.draw.program);
-	setup_vbo(shaders.draw);
+
+	var drawshader = doShadows ? shaders.draw : shaders.draw_noshadow;
+
+	gl.useProgram(drawshader.program);
+	setup_vbo(drawshader);
 	
 	gl.viewport(0, 0, canvas.width, canvas.height, mvpMatrixLight);
 	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -675,10 +683,10 @@ function drawScene(now)
 	gl.clearColor(1.,1.,1.,1.);
 	gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 	
-	set_uniforms(now, shaders.draw.program, perspectiveMatrix, mvMatrix, mvpMatrixLight, lightPosInCamSpace);
+	set_uniforms(now, drawshader.program, perspectiveMatrix, mvMatrix, mvpMatrixLight, lightPosInCamSpace);
 	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
 
-	cleanup_vbo(shaders.draw);
+	cleanup_vbo(drawshader);
 	gl.useProgram(null);
 }
 
