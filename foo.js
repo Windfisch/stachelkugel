@@ -1,17 +1,38 @@
 var gl;
 var vbo;
 
-// webGL attribute handles
-var vPosAttr;
-var vColorAttr;
-var vPos2Attr;
-var vPos3Attr;
-var vLevelAttr;
-var vRotationAttr;
-var vertices;
+var shaders = {
+	draw: {
+		name: "draw",
+		program: null,
+		attrs: {},
+		uniforms: {}
+	},
 
-var shaderProgram;
-var depthToColorShaderProgram;
+	draw_noshadow: {
+		name: "draw(noshadow)",
+		program: null,
+		attrs: {},
+		uniforms: {}
+	},
+
+	depthToRGB: {
+		name: "depthToRGB",
+		program: null,
+		attrs: {},
+		uniforms: {}
+	},
+
+	debug: {
+		name: "debug",
+		program: null,
+		attrs: {},
+		uniforms: {}
+	}
+};
+
+// webGL attribute handles
+var vertices;
 
 // explosion and respawn counters
 var EXPLODE_NEVER = 99999999;
@@ -39,8 +60,8 @@ var doShadows = false;
 var haveDepthTexture = false;
 var depthTextureExt;
 var depthTexture;
-var shadowsize_x = 512;
-var shadowsize_y = 512;
+var shadowsize_x = 512*2;
+var shadowsize_y = 512*2;
 var framebuffer_shadow = null;
 
 
@@ -96,6 +117,7 @@ function start()
 	doShadows=true;
 	
 	depthTextureExt = gl.getExtension("WEBGL_depth_texture") || gl.getExtension("MOZ_WEBGL_depth_texture") || gl.getExtension("WEBKIT_WEBGL_depth_texture"); // Or browser-appropriate prefix
+	//depthTextureExt=null; // FIXME
 	if(!depthTextureExt)
 	{
 		console.log("no depth texture extension, falling back to rgb unpacking");
@@ -153,9 +175,8 @@ function start()
 	window.addEventListener("resize", resize, false);
 	resize();
 
-	//animation_frame(0);
-	requestAnimationFrame(animation_frame);
-
+	animation_frame(0);
+	//requestAnimationFrame(animation_frame);
 }
 
 function getShader(gl, id, prepend) {
@@ -188,6 +209,7 @@ function getShader(gl, id, prepend) {
 
 	if (prepend !== undefined)
 		theSource = prepend + theSource;
+	
 	gl.shaderSource(shader, theSource);
 
 	// Kompiliere das Shaderprogramm
@@ -204,102 +226,61 @@ function getShader(gl, id, prepend) {
 	return shader;
 }
 
+function initDrawShader(shader, doShadow)
+{
+	var fsconfig = 'const bool doShadow = '+doShadow+';\nconst bool haveDepthTextureExtension = '+haveDepthTexture+";\n";
+
+	initShader(shader, "shader-vs", "shader-fs",
+		["aVertexPosition", "aVertexPosition2", "aVertexPosition3", "aVertexLevels", "aFaceRotation", "aVertexColor"],
+		["uPMatrix", "uMVMatrix", "uLightMVPMatrix", "spike", "spikeparam1", "spikeparam2", "colormode", "explosion_time", "spawn_time", "depth_map", "light_pos"],
+		fsconfig);
+}
+
 function initShaders()
 {
-	initDrawShader();
-	initDepthToColorShader();
-	initDebugShader();
+	initDrawShader(shaders.draw, true);
+	initDrawShader(shaders.draw_noshadow, false);
+
+	initShader(shaders.depthToRGB, "shader-vs", "shader-fs-depthtocolor",
+		["aVertexPosition", "aVertexPosition2", "aVertexPosition3", "aVertexLevels", "aFaceRotation"],
+		["uPMatrix", "uMVMatrix", "spike", "spikeparam1", "spikeparam2", "explosion_time", "spawn_time"]);
+	
+	initShader(shaders.debug, "shader-debugvs", "shader-debugfs",
+		["point"],
+		["tex"]);
 }
 
-function initDebugShader()
+function initShader(shader, vsname, fsname, attrs, uniforms, fsconfig)
 {
-	var fragmentShader = getShader(gl, "shader-debugfs");
-	var vertexShader = getShader(gl, "shader-debugvs");
+	console.log("initializing "+fsname+"/"+vsname+" with config "+fsconfig);
+	var fragmentShader = getShader(gl, fsname, fsconfig);
+	var vertexShader = getShader(gl, vsname);
 
-	debugShaderProgram = gl.createProgram();
-	gl.attachShader(debugShaderProgram, vertexShader);
-	gl.attachShader(debugShaderProgram, fragmentShader);
-	gl.linkProgram(debugShaderProgram);
+	shader.program = gl.createProgram();
+	gl.attachShader(shader.program, vertexShader);
+	gl.attachShader(shader.program, fragmentShader);
+	gl.linkProgram(shader.program);
 
-	gl.useProgram(debugShaderProgram);
+	gl.useProgram(shader.program);
 
-	vDebugPointAttr = gl.getAttribLocation(debugShaderProgram, "point");
-	gl.enableVertexAttribArray(debugShaderProgram, vDebugPointAttr);
-
-	gl.useProgram(null);
-}
-
-function initDepthToColorShader()
-{
-	var fragmentShader = getShader(gl, "shader-fs-depthtocolor");
-	var vertexShader = getShader(gl, "shader-vs");
-
-	depthToColorShaderProgram = gl.createProgram();
-	gl.attachShader(depthToColorShaderProgram, vertexShader);
-	gl.attachShader(depthToColorShaderProgram, fragmentShader);
-	gl.linkProgram(depthToColorShaderProgram);
-
-	if (!gl.getProgramParameter(depthToColorShaderProgram, gl.LINK_STATUS))
+	for (var i=0; i<attrs.length; i++)
 	{
-		alert("failed to link shader program" + gl.getProgramInfoLog(depthToColorShaderProgram));
+		var handle = gl.getAttribLocation(shader.program, attrs[i]);
+		if (handle>=0)
+			shader.attrs[attrs[i]] = handle;
+		else
+			console.log("could not find attribute '"+attrs[i]+"'");
 	}
 
-	gl.useProgram(depthToColorShaderProgram);
-
-	vPosAttr = gl.getAttribLocation(depthToColorShaderProgram, "aVertexPosition");
-	gl.enableVertexAttribArray(vPosAttr);
-	
-	vPos2Attr = gl.getAttribLocation(depthToColorShaderProgram, "aVertexPosition2");
-	gl.enableVertexAttribArray(vPos2Attr);
-	vPos3Attr = gl.getAttribLocation(depthToColorShaderProgram, "aVertexPosition3");
-	gl.enableVertexAttribArray(vPos3Attr);
-	
-	vLevelAttr = gl.getAttribLocation(depthToColorShaderProgram, "aVertexLevels");
-	gl.enableVertexAttribArray(vLevelAttr);
-	
-	vRotationAttr = gl.getAttribLocation(depthToColorShaderProgram, "aFaceRotation");
-	gl.enableVertexAttribArray(vRotationAttr);
-	
-	gl.useProgram(null);
-}
-
-function initDrawShader()
-{
-	var fsconfig = 'const bool doShadow = '+doShadows+';\nconst bool haveDepthTextureExtension = '+haveDepthTexture+";\n";
-	
-	var fragmentShader = getShader(gl, "shader-fs", fsconfig);
-	var vertexShader = getShader(gl, "shader-vs");
-
-
-	shaderProgram = gl.createProgram();
-	gl.attachShader(shaderProgram, vertexShader);
-	gl.attachShader(shaderProgram, fragmentShader);
-	gl.linkProgram(shaderProgram);
-
-	if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS))
+	for (var i=0; i<uniforms.length; i++)
 	{
-		alert("failed to link shader program" + gl.getProgramInfoLog(shaderProgram));
+		var handle = gl.getUniformLocation(shader.program, uniforms[i]);
+		if (handle != null)
+			shader.uniforms[uniforms[i]]=handle;
+		else
+			console.log("could not find uniform '"+uniforms[i]+"' (is: "+handle+")");
 	}
 
-	gl.useProgram(shaderProgram);
-
-	vPosAttr = gl.getAttribLocation(shaderProgram, "aVertexPosition");
-	gl.enableVertexAttribArray(vPosAttr);
-	
-	vColorAttr = gl.getAttribLocation(shaderProgram, "aVertexColor");
-	gl.enableVertexAttribArray(vColorAttr);
-	
-	vPos2Attr = gl.getAttribLocation(shaderProgram, "aVertexPosition2");
-	gl.enableVertexAttribArray(vPos2Attr);
-	vPos3Attr = gl.getAttribLocation(shaderProgram, "aVertexPosition3");
-	gl.enableVertexAttribArray(vPos3Attr);
-	
-	vLevelAttr = gl.getAttribLocation(shaderProgram, "aVertexLevels");
-	gl.enableVertexAttribArray(vLevelAttr);
-	
-	vRotationAttr = gl.getAttribLocation(shaderProgram, "aFaceRotation");
-	gl.enableVertexAttribArray(vRotationAttr);
-	
 	gl.useProgram(null);
 }
 
@@ -514,24 +495,27 @@ function cosfade(x, a,b)
 
 function drawDebug(now)
 {
-	gl.useProgram(debugShaderProgram);
+	gl.useProgram(shaders.debug.program);
 	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 	
 	gl.clearColor(1.,1.,0.,1.);
 	gl.disable(gl.DEPTH_TEST);
-	gl.clear(gl.DEPTH_BUFFER_BIT)
+	gl.clear(gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT)
 	
 	gl.viewport(0,0, canvas.width, canvas.height);
 	
 	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, depthTexture);
-	gl.uniform1i(gl.getUniformLocation(debugShaderProgram, "tex"), 0);
+	gl.uniform1i(gl.getUniformLocation(shaders.debug.program, "tex"), 0);
 
 	gl.bindBuffer(gl.ARRAY_BUFFER, debug_vbo);
-	gl.vertexAttribPointer(vDebugPointAttr, 2, gl.FLOAT, false, 0,0);
+	gl.enableVertexAttribArray(shaders.debug.attrs['point']);
+	gl.vertexAttribPointer(shaders.debug.attrs['point'], 2, gl.FLOAT, false, 0,0);
 
 	gl.drawArrays(gl.TRIANGLES, 0, 6);
 	gl.enable(gl.DEPTH_TEST);
+	gl.disableVertexAttribArray(shaders.debug.attrs['point']);
+	gl.useProgram(null);
 }
 
 function log_fps(now)
@@ -558,7 +542,7 @@ function animation_frame(now)
 	calc_stuff(now);
 	drawScene(now);
 	//drawDebug(now);
-	log_fps(now);
+	//log_fps(now);
 
 	requestAnimationFrame(animation_frame);
 }
@@ -567,12 +551,8 @@ function handle_input(now)
 {
 	if (clicked == true)
 	{
-		console.log("clicked");
 		if (explosion_time == EXPLODE_NEVER)
-		{
-			console.log("click accepted");
 			click_events.push([now, curr_spikespeed]);
-		}
 		clicked=false;
 	}
 }
@@ -631,33 +611,43 @@ function calc_stuff(now)
 
 function drawScene(now)
 {
+	const camPos = [0,0,20];
+	const lightPos = [-8,15,20];
+
 	var perspectiveMatrix = mat4.create();
 	mat4.perspective(perspectiveMatrix, 3.1415/14, canvas.width/canvas.height, 10, 40.0);
 
+	var lightDist = vec3.len(lightPos);
 	var perspectiveMatrixLight = mat4.create();
-	mat4.perspective(perspectiveMatrixLight, 3.1415/8, shadowsize_x/shadowsize_y, 3, 20.0);
+	mat4.perspective(perspectiveMatrixLight, 3.1415/16, shadowsize_x/shadowsize_y, lightDist-3, lightDist+3);
 
 	var angle = now * 3.1415 / 6000;
 	var axis = [Math.sin(now/10000) ,Math.cos(now/13000),-.1];
-	
+	var rotationMatrix = mat4.create();
+	mat4.fromRotation(rotationMatrix, angle, axis);
+
+	var cameraMatrix = mat4.create();
+	mat4.lookAt(cameraMatrix, camPos, [0,0,0], [0,1,0]);
+
+	var lightMatrix = mat4.create();
+	mat4.lookAt(lightMatrix, lightPos, [0,0,0], [0,1,0]);
+
+	var lightPosInCamSpace = vec3.create();
+	vec3.transformMat4(lightPosInCamSpace, lightPos, cameraMatrix);
+
 	var mvMatrix = mat4.create();
-	mat4.identity(mvMatrix);
-	mat4.translate(mvMatrix, mvMatrix, [0,0,-20]);
-	mat4.rotate(mvMatrix, mvMatrix, angle, axis);
+	mat4.mul(mvMatrix, cameraMatrix, rotationMatrix);
 
 	var mvMatrixLight = mat4.create();
-	mat4.identity(mvMatrixLight);
-	mat4.rotate(mvMatrixLight,mvMatrixLight, 0.4, [0,1,0]);
-	mat4.translate(mvMatrixLight, mvMatrixLight, [4.5,0,-10]);
-	mat4.rotate(mvMatrixLight, mvMatrixLight, angle, axis);
+	mat4.mul(mvMatrixLight, lightMatrix, rotationMatrix);
 
 	var mvpMatrixLight = mat4.clone(perspectiveMatrixLight);
 	mat4.mul(mvpMatrixLight, mvpMatrixLight, mvMatrixLight);
 
 	if (doShadows)
 	{
-		gl.useProgram(depthToColorShaderProgram);
-		setup_vbo();
+		gl.useProgram(shaders.depthToRGB.program);
+		setup_vbo(shaders.depthToRGB);
 		
 		gl.viewport(0, 0, shadowsize_x, shadowsize_y);
 		gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer_shadow);
@@ -674,13 +664,17 @@ function drawScene(now)
 		}
 		gl.enable(gl.DEPTH_TEST);
 		
-		set_uniforms(now, depthToColorShaderProgram, perspectiveMatrixLight, mvMatrixLight, mvpMatrixLight);
+		set_uniforms(now, shaders.depthToRGB.program, perspectiveMatrixLight, mvMatrixLight, mvpMatrixLight, lightPosInCamSpace);
 		gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
+
+		cleanup_vbo(shaders.depthToRGB);
+		gl.useProgram(null);
 	}
-	
-	
-	gl.useProgram(shaderProgram);
-	setup_vbo();
+
+	var drawshader = doShadows ? shaders.draw : shaders.draw_noshadow;
+
+	gl.useProgram(drawshader.program);
+	setup_vbo(drawshader);
 	
 	gl.viewport(0, 0, canvas.width, canvas.height, mvpMatrixLight);
 	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -689,22 +683,48 @@ function drawScene(now)
 	gl.clearColor(1.,1.,1.,1.);
 	gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 	
-	set_uniforms(now, shaderProgram, perspectiveMatrix, mvMatrix, mvpMatrixLight);
+	set_uniforms(now, drawshader.program, perspectiveMatrix, mvMatrix, mvpMatrixLight, lightPosInCamSpace);
 	gl.drawArrays(gl.TRIANGLES, 0, vertices.length/data_width);
+
+	cleanup_vbo(drawshader);
+	gl.useProgram(null);
 }
 
-function setup_vbo()
+
+/* binds the vbo and sets the vertexAttribPointers */
+function setup_vbo(shader)
 {
 	gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-	gl.vertexAttribPointer(vPosAttr, 3, gl.FLOAT, false, data_width*4, 0*4);
-	gl.vertexAttribPointer(vColorAttr, 3, gl.FLOAT, false, data_width*4, 3*4);
-	gl.vertexAttribPointer(vPos2Attr, 3, gl.FLOAT, false, data_width*4, 6*4);
-	gl.vertexAttribPointer(vPos3Attr, 3, gl.FLOAT, false, data_width*4, 9*4);
-	gl.vertexAttribPointer(vLevelAttr, 3, gl.FLOAT, false, data_width*4, 12*4);
-	gl.vertexAttribPointer(vRotationAttr, 4, gl.FLOAT, false, data_width*4, 15*4);
+	var data = [
+		["aVertexPosition",3],
+		["aVertexColor",3],
+		["aVertexPosition2",3],
+		["aVertexPosition3",3],
+		["aVertexLevels",3],
+		["aFaceRotation",4]
+	];
+
+	var offset = 0;
+	for (var i=0; i<data.length; i++)
+	{
+		if (shader.attrs[data[i][0]] != undefined)
+		{
+			gl.enableVertexAttribArray(shader.attrs[data[i][0]]);
+			gl.vertexAttribPointer(shader.attrs[data[i][0]], data[i][1], gl.FLOAT, false, data_width*4, offset*4);
+		}
+		offset = offset + data[i][1];
+	}
 }
 
-function set_uniforms(now, prog, perspectiveMatrix, mvMatrix, light_mvpMatrix)
+function cleanup_vbo(shader)
+{
+	for (attr in shader.attrs)
+		gl.disableVertexAttribArray(shader.attrs[attr]);
+	
+	gl.bindBuffer(gl.ARRAY_BUFFER, null);
+}
+
+function set_uniforms(now, prog, perspectiveMatrix, mvMatrix, light_mvpMatrix, light_pos)
 {
 	var pUniform = gl.getUniformLocation(prog, "uPMatrix");
 	gl.uniformMatrix4fv(pUniform, false, perspectiveMatrix);
@@ -732,11 +752,12 @@ function set_uniforms(now, prog, perspectiveMatrix, mvMatrix, light_mvpMatrix)
 	
 	var stimeUniform = gl.getUniformLocation(prog, "spawn_time");
 	gl.uniform1f(stimeUniform, Math.max(0.,(now-spawn_time)/1000.));
+
+	gl.uniform3fv(gl.getUniformLocation(prog, "light_pos"), light_pos);
 	
 	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, depthTexture);
-	gl.uniform1i(gl.getUniformLocation(debugShaderProgram, "depth_map"), 0);
-
+	gl.uniform1i(gl.getUniformLocation(shaders.debug.program, "depth_map"), 0);
 }
 
 function setScrollY(value){
