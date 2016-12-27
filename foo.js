@@ -56,6 +56,7 @@ var scroll_x_raw=1500;
 var scroll_y=0.5;
 var scroll_y_raw=1000;
 
+var doDebug = false;
 var doShadows = false;
 var haveDepthTexture = false;
 var depthTextureExt;
@@ -541,7 +542,8 @@ function animation_frame(now)
 	handle_input(now);
 	calc_stuff(now);
 	drawScene(now);
-	//drawDebug(now);
+	if (doDebug)
+		drawDebug(now);
 	//log_fps(now);
 
 	requestAnimationFrame(animation_frame);

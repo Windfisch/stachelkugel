@@ -42,20 +42,13 @@ function handle_slider(slider){
 	updateText();
 }
 
-function handle_shadow(box)
+function handle_checkbox(box)
 {
 	console.log(box.id + ": "+box.checked);
-	if (box.id === "shadowbox") {
+	if (box.id === "shadowbox")
 		doShadows = (box.checked==true);
-		console.log("woop woop");
-	}
-
-	if (doShadows === true)
-		console.log("true");
-	else if (doShadows === false)
-		console.log("false");
-	else
-		console.log("???");
+	else if (box.id === "debugbox")
+		doDebug = (box.checked==true);
 }
 
 function updateText(){

@@ -249,7 +249,13 @@ mat4 rotationMatrix(vec3 axis, float angle)
 	<div class="menu_entry">
 		<label for="shadow_check">Shadows: </label>
 		<form id="shadow_check">
-			<input type="checkbox" id="shadowbox" name="shadow" value="0" onclick="handle_shadow(this)" checked="checked"/>
+			<input type="checkbox" id="shadowbox" name="shadow" value="0" onclick="handle_checkbox(this)" checked="checked"/>
+		</form>
+	</div>
+	<div class="menu_entry">
+		<label for="debug_check">Debug: </label>
+		<form id="debug_check">
+			<input type="checkbox" id="debugbox" name="debug" value="0" onclick="handle_checkbox(this)"/>
 		</form>
 	</div>
 	<div class="menu_entry">
